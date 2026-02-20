@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SU Physio - Home Service</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+    <link rel="stylesheet" href="css/style.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div id="login-overlay" style="position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px);">
+        <div style="text-align: center; width: 80%;">
+            <i class="fas fa-user-md" style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
+            <h2 style="color: var(--accent-blue); margin-bottom: 10px;">SU Physio</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 0.9rem;">စကားဝှက် ရိုက်ထည့်ပါ</p>
+            
+            <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 30px;">
+                <input type="password" id="pass-1" maxlength="1" inputmode="numeric" style="width: 50px; height: 50px; text-align: center; font-size: 1.5rem; margin: 0; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 10px; color: white;">
+                <input type="password" id="pass-2" maxlength="1" inputmode="numeric" style="width: 50px; height: 50px; text-align: center; font-size: 1.5rem; margin: 0; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 10px; color: white;">
+                <input type="password" id="pass-3" maxlength="1" inputmode="numeric" style="width: 50px; height: 50px; text-align: center; font-size: 1.5rem; margin: 0; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 10px; color: white;">
+                <input type="password" id="pass-4" maxlength="1" inputmode="numeric" style="width: 50px; height: 50px; text-align: center; font-size: 1.5rem; margin: 0; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 10px; color: white;">
+            </div>
+            
+            <button onclick="checkPasscode()" style="width: 150px; border-radius: 25px;">Unlock</button>
+        </div>
+    </div>
+
+    <header style="padding: 20px 20px 0 20px;">
+        <h1 style="color: var(--accent-blue); font-size: 1.5rem;">SU Physio</h1>
+        <p style="color: var(--text-secondary); font-size: 0.8rem;">Home Care Management</p>
+    </header>
+
+    <main id="main-content">
+        
+        <section id="news" class="active-section">
+            <h3><i class="fas fa-chart-line"></i> Today News</h3>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>ဒီနေ့ လူနာစုစုပေါင်း</span>
+                    <span id="today-count" style="color: var(--accent-blue); font-weight: bold;">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>ခန့်မှန်းရငွေ</span>
+                    <span id="today-income" style="color: #10b981; font-weight: bold;">0 KS</span>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 15px;">
+                <h4>Next Appointment</h4>
+                <p id="next-patient" style="font-size: 0.9rem; margin-top: 5px; color: var(--text-secondary);">မရှိသေးပါ</p>
+            </div>
+        </section>
+
+        <section id="calendar" style="display:none;">
+            <h3><i class="fas fa-calendar-alt"></i> Schedule</h3>
+            <div class="calendar-card card">
+                <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <button onclick="changeMonth(-1)" style="width: auto; padding: 5px 15px; background: rgba(255,255,255,0.05); color: white; border-radius: 8px; border: 1px solid var(--glass-border);"><i class="fas fa-chevron-left"></i></button>
+                    <h4 id="monthDisplay">Month Year</h4>
+                    <button onclick="changeMonth(1)" style="width: auto; padding: 5px 15px; background: rgba(255,255,255,0.05); color: white; border-radius: 8px; border: 1px solid var(--glass-border);"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 10px;">
+                    <div>နေ</div><div>လ</div><div>အင်္ဂါ</div><div>ဗုဒ္ဓ</div><div>ကြာ</div><div>သော</div><div>စနေ</div>
+                </div>
+                <div id="calendarDays" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;"></div>
+            </div>
+            
+            <div id="dayAppointments" class="card" style="margin-top: 15px; display: none; border-left: 4px solid var(--accent-blue);">
+                <h4 id="selectedDateText" style="font-size: 0.9rem; color: var(--accent-blue); margin-bottom: 10px;">ရက်ချိန်းများ</h4>
+                <div id="appointmentList"></div>
+            </div>
+        </section>
+
+        <section id="booking" style="display:none;">
+            <h3><i class="fas fa-user-plus"></i> Patient Booking</h3>
+            <div class="search-box" style="margin-bottom: 20px;">
+                <input type="text" id="p-search" placeholder="လူနာဟောင်း ရှာရန်..." onkeyup="searchPatient()">
+            </div>
+            <form id="booking-form">
+                <label style="font-size: 0.8rem; color: var(--text-secondary);">Patient Name</label>
+                <input type="text" id="p-name" placeholder="အမည်" required>
+                <label style="font-size: 0.8rem; color: var(--text-secondary);">Phone Number</label>
+                <input type="tel" id="p-phone" placeholder="ဖုန်းနံပါတ်" required>
+                <label style="font-size: 0.8rem; color: var(--text-secondary);">Address</label>
+                <textarea id="p-address" rows="3" placeholder="လိပ်စာ"></textarea>
+                <label style="font-size: 0.8rem; color: var(--text-secondary);">Date & Time</label>
+                <input type="datetime-local" id="p-time" required>
+                <button type="button" onclick="handleBooking()" style="margin-top: 10px;">
+                    <i class="fab fa-telegram-plane"></i> Book & Notify Telegram
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" id="nav-news" onclick="showSection('news')">
+            <i class="fas fa-home"></i><span>News</span>
+        </div>
+        <div class="nav-item" id="nav-calendar" onclick="showSection('calendar')">
+            <i class="fas fa-calendar-day"></i><span>Calendar</span>
+        </div>
+        <div class="nav-item" id="nav-booking" onclick="showSection('booking')">
+            <i class="fas fa-edit"></i><span>Booking</span>
+        </div>
+    </nav>
+
+    <script src="js/app.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/booking.js"></script>
+    <script src="js/sheets.js"></script>
+    
+    <script>
+        // PWA & Login Initialization
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js');
+            });
+        }
+
+        // Login Screen Focus Logic
+        document.querySelectorAll('#login-overlay input').forEach((input, index, inputs) => {
+            input.addEventListener('input', () => {
+                if (input.value.length === 1 && index < inputs.length - 1) inputs[index + 1].focus();
+            });
+        });
+    </script>
+</body>
+</html>
