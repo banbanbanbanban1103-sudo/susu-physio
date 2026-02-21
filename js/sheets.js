@@ -1,4 +1,4 @@
-const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjRDhjicXQfESKnpcCn26sUdjeP8T0ZVVOppf78JJNFHmNYhRAAMBVy2HSUIuVyXsZ/exec";
 
 // ၁။ Sheet ထဲကို Data အသစ်လှမ်းပို့ခြင်း
 async function saveDataToSheet(patientData) {
