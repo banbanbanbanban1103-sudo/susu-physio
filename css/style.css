@@ -1,0 +1,183 @@
+:root {
+    --bg-color: #0f172a;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --accent-blue: #38bdf8;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    background-image: radial-gradient(circle at top right, #1e293b, #0f172a);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding-bottom: 90px;
+    overflow-x: hidden;
+}
+
+/* ၁။ Section Frame Adjust - ဘေးဘောင်များကို နေရာလွတ် (Padding) ပိုပေးခြင်း */
+main section {
+    display: none;
+    padding: 10px 20px; /* ဘေးဘယ်ညာကို 20px ချန်ထားပါသည် */
+    max-width: 500px;  /* ဖုန်းမှာကြည့်ရင် ပိုကျစ်လျစ်သွားစေရန် */
+    margin: 0 auto;
+    animation: fadeIn 0.3s ease-in;
+}
+
+section.active-section {
+    display: block;
+}
+
+/* ၂။ Card & Form Adjust - Card ပုံစံကို ပိုနုသွားစေရန် */
+.card, #booking-form {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px; /* ထောင့်ကို ပိုလုံးလိုက်ပါသည် */
+    padding: 25px;       /* အတွင်းဘက် Space ပိုပေးလိုက်ပါသည် */
+    margin: 15px 0;
+    box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.4);
+}
+
+h2, h3 {
+    color: var(--accent-blue);
+    margin: 15px 0;
+    font-weight: 600;
+}
+
+/* ၃။ Input Styles - ပိုရှင်းလင်းပြီး ရိုက်ရလွယ်ကူစေရန် */
+label {
+    display: block;
+    margin-bottom: 8px;
+    margin-left: 5px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+input, textarea, select {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.6); /* ပိုမှောင်သော Background ပြောင်းလိုက်ပါသည် */
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 14px;
+    color: white;
+    margin-bottom: 20px; /* တစ်ခုနှင့်တစ်ခု အကွာအဝေးတိုးလိုက်ပါသည် */
+    outline: none;
+    transition: 0.3s;
+    font-size: 16px;
+}
+
+input:focus {
+    border-color: var(--accent-blue);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ၄။ Button Style */
+button {
+    width: 100%;
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    transition: 0.2s;
+    margin-top: 10px;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+/* ၅။ Calendar Grid Logic */
+#calendarDays div {
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#calendarDays div:hover { background: rgba(255, 255, 255, 0.1); }
+#calendarDays div.current-day { background: var(--accent-blue); color: var(--bg-color); font-weight: bold; }
+#calendarDays div.has-appt { border-bottom: 3px solid var(--accent-blue); }
+
+/* ၆။ Bottom Navigation */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 75px;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+}
+
+.nav-item {
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+    flex: 1;
+}
+
+.nav-item.active { color: var(--accent-blue); }
+.nav-item i { display: block; font-size: 1.3rem; margin-bottom: 4px; }
+
+/* ၇။ Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ၈။ Toast Notification */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 90%;
+    max-width: 350px;
+}
+
+.toast {
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideDown 0.4s ease forwards;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
