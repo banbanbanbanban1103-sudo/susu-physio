@@ -5,7 +5,6 @@
     --accent-blue: #38bdf8;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
-    /* iOS Safe Area အတွက် variable များ */
     --safe-top: env(safe-area-inset-top);
     --safe-bottom: env(safe-area-inset-bottom);
 }
@@ -17,7 +16,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ၁။ iOS Bounce ပြဿနာကို ဖြေရှင်းရန် Body ကို Fixed လုပ်ခြင်း */
+/* ၁။ iOS Bounce & Scroll Lock */
 body {
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
@@ -25,11 +24,11 @@ body {
     color: var(--text-primary);
     width: 100%;
     height: 100%;
-    position: fixed; /* Screen ကို ငြိမ်အောင် ထိန်းထားသည် */
+    position: fixed;
     overflow: hidden;
 }
 
-/* ၂။ Header - iOS Notch နေရာလွတ် ချန်ထားရန် */
+/* ၂။ Header Style */
 header {
     position: absolute;
     top: 0;
@@ -43,14 +42,14 @@ header {
     z-index: 100;
 }
 
-/* ၃။ Main Content - Header နှင့် Nav ကြားတွင်သာ Scroll ဖြစ်စေရန် */
+/* ၃။ Main Content Scroll Area */
 main {
     position: absolute;
     top: calc(80px + var(--safe-top));
     bottom: calc(75px + var(--safe-bottom));
     left: 0;
     right: 0;
-    overflow-y: auto; /* စာရင်းများကို ဒီနေရာတွင်ပဲ scroll ဆွဲရမည် */
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 10px 20px;
 }
@@ -59,7 +58,7 @@ main section {
     display: none;
     max-width: 500px;
     margin: 0 auto;
-    animation: fadeIn 0.3s ease-in;
+    animation: fadeIn 0.3s ease-out;
 }
 
 section.active-section {
@@ -84,7 +83,26 @@ h2, h3 {
     font-weight: 600;
 }
 
-/* ၅။ Input Styles */
+/* ၅။ Weekly Recurring Box UI (အသစ်ဖြည့်ထားသည်) */
+.recurring-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--glass-border);
+}
+
+.recurring-box input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: var(--accent-blue);
+}
+
+/* ၆။ Input Styles */
 label {
     display: block;
     margin-bottom: 8px;
@@ -105,15 +123,15 @@ input, textarea, select {
     margin-bottom: 20px;
     outline: none;
     transition: 0.3s;
-    font-size: 16px; /* iOS မှာ zoom မဖြစ်အောင် အနည်းဆုံး 16px ထားရပါမည် */
+    font-size: 16px; /* iOS Auto-zoom ကာကွယ်ရန် */
 }
 
-input:focus {
+input:focus, textarea:focus {
     border-color: var(--accent-blue);
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* ၆။ Button Style */
+/* ၇။ Button Style */
 button {
     width: 100%;
     background: linear-gradient(135deg, #0ea5e9, #2563eb);
@@ -125,14 +143,14 @@ button {
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
     transition: 0.2s;
-    margin-top: 10px;
+    margin-top: 5px;
 }
 
 button:active {
     transform: scale(0.97);
 }
 
-/* ၇။ Calendar Logic */
+/* ၈။ Calendar UI */
 #calendarDays div {
     aspect-ratio: 1/1;
     display: flex;
@@ -148,18 +166,18 @@ button:active {
 #calendarDays div:hover { background: rgba(255, 255, 255, 0.1); }
 #calendarDays div.current-day { background: var(--accent-blue); color: var(--bg-color); font-weight: bold; }
 
-/* Calendar အစက်လေးများ (has-appt) */
+/* Calendar has-appt Dot */
 #calendarDays div.has-appt::after {
     content: '';
     position: absolute;
-    bottom: 5px;
+    bottom: 6px;
     width: 5px;
     height: 5px;
     background: var(--accent-blue);
     border-radius: 50%;
 }
 
-/* ၈။ Bottom Navigation - iOS Home Bar အတွက် ပြင်ဆင်ထားသည် */
+/* ၉။ Bottom Navigation */
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -183,14 +201,15 @@ button:active {
     cursor: pointer;
     flex: 1;
     padding: 10px 0;
+    transition: 0.3s;
 }
 
 .nav-item.active { color: var(--accent-blue); }
 .nav-item i { display: block; font-size: 1.3rem; margin-bottom: 4px; }
 
-/* ၉။ Toast & Animations */
+/* ၁၀။ Toast & Animations */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -209,9 +228,13 @@ button:active {
     border: 1px solid var(--glass-border);
     color: white;
     padding: 15px 20px;
-    border-radius: 16px;
+    border-radius: 18px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    animation: slideDown 0.4s ease forwards;
+    animation: slideDown 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
 @keyframes slideDown {
