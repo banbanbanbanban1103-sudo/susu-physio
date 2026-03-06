@@ -1,4 +1,4 @@
-// ၁။ Telegram Configuration (လောလောဆယ် အလွတ်ထားနိုင်သည်)
+// ၁။ Telegram Configuration
 const TELEGRAM_BOT_TOKEN = ''; 
 const TELEGRAM_CHAT_ID = ''; 
 
@@ -8,6 +8,9 @@ async function handleBooking() {
     const phone = document.getElementById('p-phone').value;
     const address = document.getElementById('p-address').value;
     const datetime = document.getElementById('p-time').value;
+    
+    // Weekly Checkbox logic (Index.html ထဲရှိ id နှင့် ကိုက်ညီရမည်)
+    const isWeekly = document.getElementById('p-weekly').checked;
 
     // Validation စစ်ဆေးခြင်း
     if (!name || !phone || !datetime) {
@@ -20,35 +23,35 @@ async function handleBooking() {
         phone: phone,
         address: address,
         datetime: datetime,
-        status: 'Regular'
+        type: isWeekly ? 'Weekly' : 'Once', // အပတ်စဉ်လား၊ တစ်ခါတည်းလား
+        status: 'Active'
     };
 
     showToast('စာရင်းသွင်းနေပါသည်...', 'success');
 
     try {
-        // (က) Telegram သို့ ပို့ခြင်း (Token ရှိမှသာ အလုပ်လုပ်မည်)
-        if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-            await sendToTelegram(bookingData);
-        } else {
-            console.log("Telegram Token မရှိသေးသဖြင့် Notification ကို ကျော်လိုက်ပါပြီ။");
-        }
-
-        // (ခ) Google Sheet ထဲသို့ Data သိမ်းဆည်းခြင်း
+        // (က) Google Sheet ထဲသို့ Data သိမ်းဆည်းခြင်း (အရင်လုပ်ဆောင်သည်)
         if (typeof saveDataToSheet === "function") {
             const isSaved = await saveDataToSheet(bookingData);
             
             if (isSaved) {
-                showToast('Booking အောင်မြင်ပြီး Sheet ထဲ သိမ်းဆည်းပြီးပါပြီ');
-                
-                // Form ကို Reset ချပြီး Dashboard သို့ ပြန်သွားခြင်း
-                document.getElementById('booking-form').reset();
-                
-                // Sheet ထဲက data အသစ်ကို ချက်ချင်းပြန်ဆွဲယူခြင်း
-                if (typeof fetchPatientsFromSheet === "function") {
-                    fetchPatientsFromSheet();
+                // (ခ) Telegram သို့ Notification ပို့ခြင်း
+                if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+                    await sendToTelegram(bookingData);
                 }
 
-                setTimeout(() => showSection('news'), 2000);
+                showToast('Booking အောင်မြင်ပြီး Calendar ညှိပြီးပါပြီ');
+                
+                // Form ကို Reset ချခြင်း
+                document.getElementById('booking-form').reset();
+                
+                // ဒေတာအသစ်ကို ပြန်ဆွဲပြီး Calendar နှင့် Dashboard ကို Update လုပ်ခြင်း
+                if (typeof fetchPatientsFromSheet === "function") {
+                    await fetchPatientsFromSheet();
+                }
+
+                // ၂ စက္ကန့်အကြာတွင် Dashboard (သို့) Calendar သို့ ပြောင်းမည်
+                setTimeout(() => showSection('calendar'), 1500);
             } else {
                 showToast('Sheet ထဲသိမ်းရာတွင် အခက်အခဲရှိနေသည်', 'error');
             }
@@ -62,11 +65,25 @@ async function handleBooking() {
 
 // ၃။ Telegram API သို့ Message ပို့ခြင်း
 async function sendToTelegram(data) {
-    // Token မပါရင် function ထဲက ပြန်ထွက်မည်
     if (!TELEGRAM_BOT_TOKEN) return;
 
-    const formattedDate = new Date(data.datetime).toLocaleString('my-MM');
-    const text = `✨ **SU Physio - New Booking** ✨\n━━━━━━━━━━━━━━━━━━\n👤 **လူနာအမည်:** ${data.name}\n📞 **ဖုန်းနံပါတ်:** ${data.phone}\n🏠 **လိပ်စာ:** ${data.address || 'မပါဝင်ပါ'}\n⏰ **ရက်ချိန်း:** ${formattedDate}\n━━━━━━━━━━━━━━━━━━`;
+    // ရက်စွဲနှင့် အချိန်ကို ဖတ်ရလွယ်အောင် ပြင်ခြင်း
+    const dateObj = new Date(data.datetime);
+    const formattedDate = dateObj.toLocaleDateString('my-MM', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const formattedTime = dateObj.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+    
+    // Weekly ဖြစ်ပါက Message တွင် ထည့်ပြရန်
+    const typeLabel = data.type === 'Weekly' ? '🔄 အပတ်စဉ် (Weekly)' : '📍 တစ်ကြိမ်တည်း (Once)';
+
+    const text = `✨ **SU Physio - New Booking** ✨\n` +
+                 `━━━━━━━━━━━━━━━━━━\n` +
+                 `👤 **လူနာအမည်:** ${data.name}\n` +
+                 `📞 **ဖုန်းနံပါတ်:** ${data.phone}\n` +
+                 `🏠 **လိပ်စာ:** ${data.address || 'မပါဝင်ပါ'}\n` +
+                 `📅 **ရက်စွဲ:** ${formattedDate}\n` +
+                 `⏰ **အချိန်:** ${formattedTime}\n` +
+                 `📝 **အမျိုးအစား:** ${typeLabel}\n` +
+                 `━━━━━━━━━━━━━━━━━━`;
 
     try {
         const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -80,19 +97,17 @@ async function sendToTelegram(data) {
             })
         });
     } catch (e) {
-        console.warn("Telegram ပို့၍မရပါ - ", e);
+        console.warn("Telegram Notification Error: ", e);
     }
 }
 
 // ၄။ လူနာဟောင်း ရှာဖွေခြင်း (Search & Auto-fill)
 function searchPatient() {
     const query = document.getElementById('p-search').value.toLowerCase();
-    
-    // အနည်းဆုံး ၂ လုံးရိုက်မှ ရှာမယ်
     if (query.length < 2) return;
 
-    // global appointments array ထဲတွင် ရှာဖွေခြင်း
     if (typeof appointments !== 'undefined' && Array.isArray(appointments)) {
+        // အမည် သို့မဟုတ် ဖုန်းဖြင့် ရှာဖွေခြင်း
         const found = appointments.find(p => 
             p.name.toLowerCase().includes(query) || (p.phone && p.phone.includes(query))
         );

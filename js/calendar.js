@@ -31,7 +31,7 @@ function formatTime(timeStr) {
 }
 
 /**
- * ၂။ Calendar ကို စတင်ဆွဲသားခြင်း
+ * ၂။ Calendar ကို စတင်ဆွဲသားခြင်း (Weekly Logic ပါဝင်သည်)
  */
 function renderCalendar() {
     const monthDisplay = document.getElementById('monthDisplay');
@@ -56,10 +56,25 @@ function renderCalendar() {
 
     // လအတွင်း ရက်များအားလုံးကို ဆွဲထုတ်ခြင်း
     for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(year, month, day);
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
-        // အမည်တူများကို overwite မဖြစ်စေရန် filter သုံးပြီး စစ်ဆေးခြင်း
-        const dayAppts = appointments.filter(a => a.date === dateStr);
+        const dayOfWeek = dateObj.getDay(); // 0 = Sun, 1 = Mon...
+
+        // Weekly Logic: ရက်စွဲတူတာ သို့မဟုတ် Weekly ဖြစ်ပြီး ပတ်စဉ်နေ့ တူတာကို စစ်မည်
+        const dayAppts = appointments.filter(a => {
+            const apptDate = new Date(a.time);
+            const apptDayOfWeek = apptDate.getDay();
+            
+            // ၁။ ရက်စွဲ အတိအကျတူရင် ပြမည်
+            if (a.date === dateStr) return true;
+            
+            // ၂။ Weekly ဖြစ်ပြီး ပတ်စဉ်နေ့တူရင် (Booking စတင်တဲ့ရက်ထက် နောက်ပိုင်းဖြစ်မှပြမည်)
+            if (a.type === "Weekly" && apptDayOfWeek === dayOfWeek) {
+                return new Date(dateStr) >= new Date(a.date);
+            }
+            return false;
+        });
+
         const hasAppt = dayAppts.length > 0;
         const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
@@ -67,48 +82,51 @@ function renderCalendar() {
         dayEl.innerText = day;
         
         if (isToday) dayEl.classList.add('current-day');
+        if (hasAppt) dayEl.classList.add('has-appt');
         
-        // အကယ်၍ ရက်ချိန်းရှိလျှင် (has-appt) class ထည့်ပြီး အစက်ပြမည်
-        if (hasAppt) {
-            dayEl.classList.add('has-appt');
-        }
-        
-        dayEl.onclick = () => showAppointments(dateStr);
+        dayEl.onclick = () => showAppointments(dateStr, dayOfWeek);
         calendarDays.appendChild(dayEl);
     }
 }
 
 /**
  * ၃။ ရွေးချယ်လိုက်သော ရက်စွဲရှိ လူနာစာရင်းကို ပြခြင်း
- * တစ်ရက်တည်းတွင် လူနာအမည်တူ/မတူ အကြိမ်ကြိမ်ရှိလျှင်လည်း အားလုံးကို စာရင်းလိုက်ပြမည်
  */
-function showAppointments(dateStr) {
+function showAppointments(dateStr, dayOfWeek) {
     const dayApptsSection = document.getElementById('dayAppointments');
     const apptListContainer = document.getElementById('appointmentList');
     const selectedDateText = document.getElementById('selectedDateText');
 
-    // Filter ကို သုံးထားသဖြင့် Oo Pan အမည်နှင့် ၃ ကြိမ်တင်ထားလျှင် ၃ ကြိမ်လုံး ပေါ်လာမည်
-    const dayAppts = appointments.filter(a => a.date === dateStr);
+    // Normal + Weekly လူနာများကို စုစည်းစစ်ထုတ်ခြင်း
+    const dayAppts = appointments.filter(a => {
+        const apptDayOfWeek = new Date(a.time).getDay();
+        return a.date === dateStr || (a.type === "Weekly" && apptDayOfWeek === dayOfWeek && new Date(dateStr) >= new Date(a.date));
+    });
 
     selectedDateText.innerText = `📅 ${dateStr} ရှိ ရက်ချိန်းများ (${dayAppts.length} ဦး)`;
     apptListContainer.innerHTML = '';
 
     if (dayAppts.length > 0) {
-        // အချိန်အလိုက် အစဉ်လိုက်စီခြင်း
-        dayAppts.sort((a, b) => a.time.localeCompare(b.time));
+        // အချိန်အလိုက် စီခြင်း
+        dayAppts.sort((a, b) => {
+            const timeA = a.time.includes('T') ? a.time.split('T')[1] : a.time;
+            const timeB = b.time.includes('T') ? b.time.split('T')[1] : b.time;
+            return timeA.localeCompare(timeB);
+        });
 
         dayAppts.forEach(appt => {
             const item = document.createElement('div');
-            item.style.padding = '15px';
-            item.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-            item.style.marginBottom = '10px';
-            item.style.background = 'rgba(255,255,255,0.03)';
-            item.style.borderRadius = '8px';
+            item.className = 'appt-item';
+            item.style.cssText = 'padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; background: rgba(255,255,255,0.03); border-radius: 12px;';
             
+            // Weekly လူနာဆိုလျှင် Label လေးပြရန်
+            const typeTag = appt.type === 'Weekly' ? 
+                `<span style="font-size: 0.65rem; background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">🔄 Weekly</span>` : '';
+
             item.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <strong style="color: var(--accent-blue); font-size: 1.1rem;">${appt.name}</strong>
+                        <strong style="color: var(--accent-blue); font-size: 1.1rem;">${appt.name} ${typeTag}</strong>
                         <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 5px 0;">
                             <i class="fas fa-phone-alt"></i> ${appt.phone}
                         </p>
@@ -117,12 +135,12 @@ function showAppointments(dateStr) {
                         </p>
                     </div>
                     <div style="text-align: right;">
-                        <span style="display: block; color: white; font-weight: bold; background: var(--accent-blue); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem;">
+                        <span style="display: block; color: white; font-weight: bold; background: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem;">
                             ${formatTime(appt.time)}
                         </span>
                         <div style="margin-top: 12px;">
                             <button onclick="rebookPatient('${appt.name}', '${appt.phone}', '${appt.address}')" 
-                                style="padding: 6px 12px; font-size: 0.75rem; width: auto; background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); border-radius: 4px;">
+                                style="padding: 6px 12px; font-size: 0.75rem; width: auto; background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); border-radius: 6px;">
                                 Re-book
                             </button>
                         </div>

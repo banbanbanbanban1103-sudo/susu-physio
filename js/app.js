@@ -48,7 +48,6 @@ function showSection(sectionId) {
     const navItem = document.getElementById(`nav-${sectionId}`);
     if (navItem) navItem.classList.add('active');
     
-    // iOS မှာ screen တစ်ခုလုံး မပါသွားစေရန် main ထဲမှာပဲ scroll တင်ပေးခြင်း
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
         mainContent.scrollTo({ top: 0, behavior: 'smooth' });
@@ -65,23 +64,42 @@ function updateDashboardStats() {
         return;
     }
 
+    // လက်ရှိ မြန်မာစံတော်ချိန် ယူခြင်း
     const now = new Date();
-    const mmTime = new Date(now.getTime() + (6.5 * 60 * 60 * 1000));
-    const todayStr = mmTime.toISOString().split('T')[0];
-    
-    const todayAppts = appointments.filter(a => a.date === todayStr);
+    const mmOffset = 6.5 * 60 * 60 * 1000;
+    const mmNow = new Date(now.getTime() + mmOffset);
+    const todayStr = mmNow.toISOString().split('T')[0];
+    const todayDayOfWeek = mmNow.getUTCDay(); // 0 = Sun, 1 = Mon...
+
+    // (က) ဒီနေ့ လူနာစာရင်း စစ်ထုတ်ခြင်း (Normal + Weekly)
+    const todayAppts = appointments.filter(a => {
+        const apptDate = new Date(a.time);
+        const apptDayOfWeek = apptDate.getDay();
+
+        // ၁။ ရက်စွဲအတိအကျတူရင် ပြမယ်
+        if (a.date === todayStr) return true;
+        
+        // ၂။ Weekly ဖြစ်ပြီး ပတ်စဉ်ရက်တူရင် (စတင်တဲ့ရက်ထက် နောက်ပိုင်းဖြစ်ရမယ်)
+        if (a.type === "Weekly" && apptDayOfWeek === todayDayOfWeek) {
+            return new Date(todayStr) >= new Date(a.date);
+        }
+        return false;
+    });
+
     if (todayCountEl) todayCountEl.innerText = todayAppts.length;
 
+    // (ခ) Next Appointments စာရင်း ပြသခြင်း
     if (nextListContainer) {
         nextListContainer.innerHTML = ''; 
 
-        const upcoming = appointments.filter(a => {
-            const apptFullDate = new Date(`${a.date}T${a.time.includes('T') ? a.time.split('T')[1].substring(0, 5) : '00:00'}`);
-            apptFullDate.setMinutes(apptFullDate.getMinutes() + 390);
-            return apptFullDate >= now;
+        // Dashboard မှာ လက်ရှိအချိန် နောက်ပိုင်း လာမယ့်သူ ၅ ယောက်ကိုပဲ ပြမယ်
+        const upcoming = todayAppts.filter(a => {
+            const [hours, minutes] = (a.time.includes('T') ? a.time.split('T')[1] : a.time).split(':');
+            const apptTimeOnly = new Date(mmNow);
+            apptTimeOnly.setHours(parseInt(hours), parseInt(minutes), 0);
+            return apptTimeOnly >= mmNow;
         }).sort((a, b) => {
-            return new Date(a.time.includes('T') ? a.time : `${a.date}T${a.time}`) - 
-                   new Date(b.time.includes('T') ? b.time : `${b.date}T${b.time}`);
+            return a.time.localeCompare(b.time);
         });
 
         if (upcoming.length > 0) {
@@ -104,14 +122,14 @@ function updateDashboardStats() {
                         </div>
                         <div style="text-align: right;">
                             <span style="display: block; color: #38bdf8; font-weight: bold; font-size: 0.9rem;">${displayTime}</span>
-                            <span style="font-size: 0.75rem; color: #64748b;">${appt.date === todayStr ? 'Today' : appt.date}</span>
+                            <span style="font-size: 0.75rem; color: #64748b;">${appt.type === 'Weekly' ? '🔄 Weekly' : 'Today'}</span>
                         </div>
                     </div>
                 `;
                 nextListContainer.appendChild(card);
             });
         } else {
-            nextListContainer.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px;">နောင်လာမည့် ရက်ချိန်း မရှိသေးပါ</p>';
+            nextListContainer.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px;">ဒီနေ့အတွက် နောက်ထပ် ရက်ချိန်း မရှိတော့ပါ</p>';
         }
     }
 }
@@ -137,7 +155,7 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
-// ၆။ iOS Scroll Bounce & Fixed Navigation Fix
+// ၆။ App Initialize & iOS Fixes
 window.addEventListener('load', () => {
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
         const loginOverlay = document.getElementById('login-overlay');
@@ -150,7 +168,6 @@ window.addEventListener('load', () => {
 
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
-        // iOS Safari Bounce Fix: အပေါ်ဆုံးနှင့် အောက်ဆုံးတွင် 1px နေရာချန်ထားခြင်း
         mainContent.addEventListener('touchstart', function() {
             const top = this.scrollTop;
             const totalScroll = this.scrollHeight;
@@ -164,7 +181,6 @@ window.addEventListener('load', () => {
         });
     }
 
-    // iOS မှာ Navigation Bar နေရာကို ဆွဲဆန့် (Stretch) လုပ်ခြင်းမှ ကာကွယ်ရန်
     document.addEventListener('touchmove', function(e) {
         if (!e.target.closest('#main-content')) {
             e.preventDefault();
