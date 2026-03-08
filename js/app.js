@@ -11,13 +11,10 @@ function checkPasscode() {
     const enteredCode = p1 + p2 + p3 + p4;
 
     if (enteredCode === CORRECT_PASSCODE) {
-        const loginOverlay = document.getElementById('login-overlay');
-        if (loginOverlay) {
-            loginOverlay.style.opacity = '0';
-            setTimeout(() => {
-                loginOverlay.style.display = 'none';
-            }, 500);
-        }
+        document.getElementById('login-overlay').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('login-overlay').style.display = 'none';
+        }, 500);
         
         showToast('SU Physio မှ ကြိုဆိုပါတယ်', 'success');
         sessionStorage.setItem('isLoggedIn', 'true');
@@ -28,8 +25,7 @@ function checkPasscode() {
     } else {
         showToast('စကားဝှက် မှားယွင်းနေပါသည်', 'error');
         document.querySelectorAll('#login-overlay input').forEach(i => i.value = '');
-        const firstInput = document.getElementById('pass-1');
-        if (firstInput) firstInput.focus();
+        document.getElementById('pass-1').focus();
     }
 }
 
@@ -63,36 +59,33 @@ function updateDashboardStats() {
     const todayCountEl = document.getElementById('today-count');
     const nextListContainer = document.getElementById('next-patient-list');
 
-    // ဒေတာမရှိသေးလျှင် ပြန်ထွက်မည်
-    if (typeof appointments === 'undefined' || !Array.isArray(appointments) || appointments.length === 0) {
-        if (todayCountEl) todayCountEl.innerText = "0";
-        if (nextListContainer) nextListContainer.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px;">ဒေတာများ မရှိသေးပါ</p>';
+    if (typeof appointments === 'undefined' || appointments.length === 0) {
+        if (nextListContainer) nextListContainer.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px;">ဒေတာများ ဆွဲယူနေဆဲ...</p>';
         return;
     }
 
-    // ✅ ယနေ့ရက်စွဲကို Local Time အတိုင်း တိကျစွာယူခြင်း
+    // လက်ရှိ မြန်မာစံတော်ချိန် ယူခြင်း
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const todayDayOfWeek = now.getDay();
+    const mmOffset = 6.5 * 60 * 60 * 1000;
+    const mmNow = new Date(now.getTime() + mmOffset);
+    const todayStr = mmNow.toISOString().split('T')[0];
+    const todayDayOfWeek = mmNow.getUTCDay();
 
     // (က) ဒီနေ့ လူနာစာရင်း စစ်ထုတ်ခြင်း
     const todayAppts = appointments.filter(a => {
-        // ၁။ Status က 'Complete' ဖြစ်နေရင် လုံးဝမပြပါ
+        // ၁။ Status က 'Complete' ဖြစ်နေရင် (Once သမားများ) လုံးဝမပြပါ
         if (a.status === 'Complete') return false;
 
-        // ၂။ ဒီနေ့အတွက် "ပြီးပြီ" နှိပ်ထားရင် ခဏဖျောက်ထားမည်
+        // ၂။ ဒီနေ့အတွက် "ပြီးပြီ" နှိပ်ထားရင်လည်း (Weekly သမားများ) ခဏဖျောက်ထားမည်
         const doneKey = `done_${a.name}_${a.time}_${todayStr}`;
         if (sessionStorage.getItem(doneKey) === 'true') return false;
 
-        // ၃။ ပုံမှန်ရက်ချိန်း သို့မဟုတ် Weekly ရက်ချိန်း စစ်ဆေးခြင်း
-        // Sheet မှလာသော time ကို format ညှိ၍ နေ့ရက်စစ်သည်
-        let aTimeClean = String(a.time).replace(' ', 'T');
-        let aDateObj = new Date(aTimeClean);
-        let apptDayOfWeek = aDateObj.getDay();
+        const apptDate = new Date(a.time);
+        const apptDayOfWeek = apptDate.getDay();
 
+        // ၃။ ပုံမှန်ရက်ချိန်း သို့မဟုတ် Weekly ရက်ချိန်း စစ်ဆေးခြင်း
         if (a.date === todayStr) return true;
         if (a.type === "Weekly" && apptDayOfWeek === todayDayOfWeek) {
-            // စတင်တဲ့ရက်ထက် ကျော်မှသာ ပြမည်
             return new Date(todayStr) >= new Date(a.date);
         }
         return false;
@@ -105,13 +98,16 @@ function updateDashboardStats() {
         nextListContainer.innerHTML = ''; 
 
         // အချိန်အလိုက် စီမည်
-        const upcoming = todayAppts.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+        const upcoming = todayAppts.sort((a, b) => a.time.localeCompare(b.time));
 
         if (upcoming.length > 0) {
             upcoming.forEach(appt => {
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.style.cssText = 'margin:10px 0; border-left:4px solid #38bdf8; padding:15px; background:#1e293b; border-radius:12px;';
+                card.style.margin = '10px 0';
+                card.style.borderLeft = '4px solid #38bdf8';
+                card.style.padding = '15px';
+                card.style.background = '#1e293b';
                 
                 const displayTime = (typeof formatTime === 'function') ? formatTime(appt.time) : (appt.time || '--:--');
 
@@ -139,7 +135,7 @@ function updateDashboardStats() {
                 nextListContainer.appendChild(card);
             });
         } else {
-            nextListContainer.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px;">ယနေ့အတွက် ရက်ချိန်းများ မရှိပါ</p>';
+            nextListContainer.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px;">ယနေ့အတွက် ရက်ချိန်းများ အားလုံး ပြီးဆုံးပါပြီ</p>';
         }
     }
 }
@@ -190,4 +186,10 @@ window.addEventListener('load', () => {
             }
         });
     }
+
+    document.addEventListener('touchmove', function(e) {
+        if (!e.target.closest('#main-content')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 });
