@@ -1,5 +1,5 @@
 // ဆရာမ ပေးထားသော နောက်ဆုံး Deployment URL
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlSJh7gpXZk-67iUGQffrreo-syIKqcWgVpmCRhTnRzAxdUoaVwYFKhXAk04vdThM/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxesy603kpIANMe8NNVHaZGpz1ZqKkUOeNar4YqEeHnDeMqYOwLsgSQveDmKlgndEgf/exec";
 
 // ၁။ Sheet ထဲကို Data အသစ်လှမ်းပို့ခြင်း (Booking အသစ်တင်ခြင်း)
 async function saveDataToSheet(patientData) {
