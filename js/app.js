@@ -69,20 +69,17 @@ function updateDashboardStats() {
     const mmOffset = 6.5 * 60 * 60 * 1000;
     const mmNow = new Date(now.getTime() + mmOffset);
     const todayStr = mmNow.toISOString().split('T')[0];
-    const todayDayOfWeek = mmNow.getUTCDay(); // 0 = Sun, 1 = Mon...
+    const todayDayOfWeek = mmNow.getUTCDay();
 
-    // (က) ဒီနေ့ လူနာစာရင်း စစ်ထုတ်ခြင်း (Normal + Weekly)
-    // Status က 'Complete' ဖြစ်နေရင် Dashboard မှာ ထည့်မပြတော့ပါ
+    // (က) ဒီနေ့ လူနာစာရင်း စစ်ထုတ်ခြင်း (Status က 'Complete' ဖြစ်နေရင် မပြပါ)
     const todayAppts = appointments.filter(a => {
         if (a.status === 'Complete') return false;
 
         const apptDate = new Date(a.time);
         const apptDayOfWeek = apptDate.getDay();
 
-        // ၁။ ရက်စွဲအတိအကျတူရင် ပြမယ်
         if (a.date === todayStr) return true;
         
-        // ၂။ Weekly ဖြစ်ပြီး ပတ်စဉ်ရက်တူရင် (စတင်တဲ့ရက်ထက် နောက်ပိုင်းဖြစ်ရမယ်)
         if (a.type === "Weekly" && apptDayOfWeek === todayDayOfWeek) {
             return new Date(todayStr) >= new Date(a.date);
         }
@@ -95,23 +92,19 @@ function updateDashboardStats() {
     if (nextListContainer) {
         nextListContainer.innerHTML = ''; 
 
-        // Dashboard မှာ လက်ရှိအချိန် နောက်ပိုင်း လာမယ့်သူ ၅ ယောက်ကိုပဲ ပြမယ်
-        const upcoming = todayAppts.filter(a => {
-            const [hours, minutes] = (a.time.includes('T') ? a.time.split('T')[1] : a.time).split(':');
-            const apptTimeOnly = new Date(mmNow);
-            apptTimeOnly.setHours(parseInt(hours), parseInt(minutes), 0);
-            return apptTimeOnly >= mmNow;
-        }).sort((a, b) => {
+        // ဒီနေ့အတွက် ကျန်ရှိသမျှ လူနာအားလုံးကို အချိန်အလိုက် စီပြမည်
+        const upcoming = todayAppts.sort((a, b) => {
             return a.time.localeCompare(b.time);
         });
 
         if (upcoming.length > 0) {
-            upcoming.slice(0, 5).forEach(appt => {
+            upcoming.forEach(appt => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.style.margin = '10px 0';
                 card.style.borderLeft = '4px solid #38bdf8';
                 card.style.padding = '15px';
+                card.style.background = '#1e293b'; // Card background လေး ပိုပေါ်အောင်
                 
                 const displayTime = (typeof formatTime === 'function') ? formatTime(appt.time) : (appt.time || '--:--');
 
@@ -123,7 +116,7 @@ function updateDashboardStats() {
                                 <i class="fas fa-map-marker-alt"></i> ${appt.address || 'လိပ်စာမရှိပါ'}
                             </p>
                             <button onclick="markAsComplete('${appt.name}', '${appt.time}')" 
-                                style="width: auto; padding: 6px 14px; font-size: 0.75rem; margin-top: 10px; background: #10b981; border-radius: 8px; border:none; color:white; font-weight:bold;">
+                                style="width: auto; padding: 6px 14px; font-size: 0.75rem; margin-top: 10px; background: #10b981; border-radius: 8px; border:none; color:white; font-weight:bold; cursor:pointer;">
                                 <i class="fas fa-check"></i> ပြီးပြီ
                             </button>
                         </div>
@@ -136,7 +129,7 @@ function updateDashboardStats() {
                 nextListContainer.appendChild(card);
             });
         } else {
-            nextListContainer.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px;">ဒီနေ့အတွက် နောက်ထပ် ရက်ချိန်း မရှိတော့ပါ</p>';
+            nextListContainer.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px;">ယနေ့အတွက် ရက်ချိန်းများ အားလုံး ပြီးဆုံးပါပြီ</p>';
         }
     }
 }
