@@ -1,17 +1,14 @@
 let currentDate = new Date();
-let appointments = []; // Google Sheets မှလာသော Data အားလုံး သိမ်းရန် Array
+let appointments = [];
 
-/**
- * ၁။ အချိန် format ပြောင်းသည့် function
- */
+// ၁။ အချိန် format ပြောင်းသည့် function
+// Sheet က Myanmar time ဖြင့် သိမ်းပြီးသားမို့ offset ထပ်မပေါင်းရ
 function formatTime(timeStr) {
     if (!timeStr) return "အချိန်မရှိ";
     
-    // sheets.js မှ isoStr "2026-03-08T07:28:00" format ဖြင့်ရောက်လာမည်
-    // Google Sheet က Myanmar time (UTC+6:30) နဲ့ တင်ထားပြီးသားမို့ offset ထပ်မပေါင်းရ
     let timePart = "";
     if (timeStr.includes('T')) {
-        timePart = timeStr.split('T')[1].substring(0, 5); // "07:28"
+        timePart = timeStr.split('T')[1].substring(0, 5);
     } else if (timeStr.includes(' ')) {
         timePart = timeStr.split(' ')[1].substring(0, 5);
     } else {
@@ -19,53 +16,40 @@ function formatTime(timeStr) {
     }
 
     let [hours, minutes] = timePart.split(':').map(Number);
-
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
     const displayMinutes = String(minutes).padStart(2, '0');
-    
     return `${displayHours}:${displayMinutes} ${ampm}`;
 }
 
-/**
- * ၂။ Calendar ကို စတင်ဆွဲသားခြင်း (Complete ဖြစ်သူများအား ဖယ်ထုတ်ထားသည်)
- */
+// ၂။ Calendar ဆွဲခြင်း
 function renderCalendar() {
     const monthDisplay = document.getElementById('monthDisplay');
     const calendarDays = document.getElementById('calendarDays');
     if (!calendarDays) return;
-    
     calendarDays.innerHTML = '';
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     if (monthDisplay) monthDisplay.innerText = `${monthNames[month]} ${year}`;
 
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // လအစ မတိုင်မီ ကွက်လပ်များ ဖြည့်ခြင်း
     for (let i = 0; i < firstDay; i++) {
         calendarDays.innerHTML += `<div></div>`;
     }
 
-    // လအတွင်း ရက်များအားလုံးကို ဆွဲထုတ်ခြင်း
     for (let day = 1; day <= daysInMonth; day++) {
         const dateObj = new Date(year, month, day);
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dayOfWeek = dateObj.getDay();
 
-        // Weekly Logic + Status Check: Status က Complete ဖြစ်နေရင် အစက်မပြပါ
         const dayAppts = appointments.filter(a => {
             if (a.status === 'Complete') return false;
-
-            // ★ FIX: date part သာသုံး၍ dayOfWeek ရှာမည် (UTC parse မှားမှာမို့)
             const apptDayOfWeek = new Date(a.date + 'T00:00:00').getDay();
-            
             if (a.date === dateStr) return true;
-            
             if (a.type === "Weekly" && apptDayOfWeek === dayOfWeek) {
                 return new Date(dateStr) >= new Date(a.date);
             }
@@ -73,34 +57,26 @@ function renderCalendar() {
         });
 
         const hasAppt = dayAppts.length > 0;
-        // ★ FIX: Myanmar today date ဖြင့် isToday စစ်မည်
         const mmNow = new Date(new Date().getTime() + 6.5 * 60 * 60 * 1000);
         const isToday = mmNow.toISOString().split('T')[0] === dateStr;
 
         const dayEl = document.createElement('div');
         dayEl.innerText = day;
-        
         if (isToday) dayEl.classList.add('current-day');
-        if (hasAppt) dayEl.classList.add('has-appt'); // လူနာရှိမှသာ အစက်ပြမည်
-        
+        if (hasAppt) dayEl.classList.add('has-appt');
         dayEl.onclick = () => showAppointments(dateStr, dayOfWeek);
         calendarDays.appendChild(dayEl);
     }
 }
 
-/**
- * ၃။ ရွေးချယ်လိုက်သော ရက်စွဲရှိ လူနာစာရင်းကို ပြခြင်း
- */
+// ၃။ ရွေးချယ်သော ရက်ရှိ လူနာစာရင်း ပြခြင်း
 function showAppointments(dateStr, dayOfWeek) {
     const dayApptsSection = document.getElementById('dayAppointments');
     const apptListContainer = document.getElementById('appointmentList');
     const selectedDateText = document.getElementById('selectedDateText');
 
-    // Status 'Complete' မဟုတ်သော လူနာများကိုသာ ပြသရန် စစ်ထုတ်ခြင်း
     const dayAppts = appointments.filter(a => {
         if (a.status === 'Complete') return false;
-
-        // ★ FIX: date part သာသုံး၍ dayOfWeek ရှာမည်
         const apptDayOfWeek = new Date(a.date + 'T00:00:00').getDay();
         return a.date === dateStr || (a.type === "Weekly" && apptDayOfWeek === dayOfWeek && new Date(dateStr) >= new Date(a.date));
     });
@@ -109,7 +85,6 @@ function showAppointments(dateStr, dayOfWeek) {
     if (apptListContainer) apptListContainer.innerHTML = '';
 
     if (dayAppts.length > 0) {
-        // အချိန်အလိုက် စီခြင်း
         dayAppts.sort((a, b) => a.time.localeCompare(b.time));
 
         dayAppts.forEach(appt => {
@@ -119,6 +94,13 @@ function showAppointments(dateStr, dayOfWeek) {
             
             const typeTag = appt.type === 'Weekly' ? 
                 `<span style="font-size: 0.65rem; background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">🔄 Weekly</span>` : '';
+
+            // Weekly ဆိုရင် "အပြီးအပိုင်ဖျက်" button ထပ်ထည့်
+            const forceCompleteBtn = appt.type === 'Weekly' ? `
+                <button onclick="forceCompletePatient('${appt.name}', '${appt.time}')" 
+                    style="padding: 6px 14px; background: #ef4444; border: none; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem; margin-left: 8px;">
+                    <i class="fas fa-trash"></i> အပြီးဖျက်
+                </button>` : '';
 
             item.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -130,10 +112,16 @@ function showAppointments(dateStr, dayOfWeek) {
                         <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">
                             <i class="fas fa-map-marker-alt"></i> ${appt.address || 'လိပ်စာမရှိပါ'}
                         </p>
-                        <button onclick="markAsComplete('${appt.name}', '${appt.time}')" 
-                            style="padding: 6px 14px; background: #10b981; border: none; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem;">
-                            <i class="fas fa-check"></i> ပြီးပြီ
-                        </button>
+                        <p style="font-size: 0.75rem; color: #10b981; margin-bottom: 10px;">
+                            <i class="fas fa-history"></i> ကုသမှု: ${appt.count} ကြိမ်
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            <button onclick="markAsComplete('${appt.name}', '${appt.time}')" 
+                                style="padding: 6px 14px; background: #10b981; border: none; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem;">
+                                <i class="fas fa-check"></i> ပြီးပြီ
+                            </button>
+                            ${forceCompleteBtn}
+                        </div>
                     </div>
                     <div style="text-align: right;">
                         <span style="display: block; color: white; font-weight: bold; background: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem;">
@@ -160,31 +148,24 @@ function showAppointments(dateStr, dayOfWeek) {
     }
 }
 
-/**
- * ၄။ လ ပြောင်းလဲခြင်း
- */
+// ၄။ လ ပြောင်းခြင်း
 function changeMonth(step) {
     currentDate.setMonth(currentDate.getMonth() + step);
     renderCalendar();
 }
 
-/**
- * ၅။ လူနာဟောင်းအချက်အလက်ဖြင့် အသစ်ပြန်တင်ခြင်း
- */
+// ၅။ Re-book
 function rebookPatient(name, phone, address) {
     if (typeof showSection === "function") {
         showSection('booking');
         const nameEl = document.getElementById('p-name');
         const phoneEl = document.getElementById('p-phone');
         const addrEl = document.getElementById('p-address');
-        
         if (nameEl) nameEl.value = name;
         if (phoneEl) phoneEl.value = phone;
         if (addrEl) addrEl.value = address;
-        
         if (typeof showToast === "function") showToast(`${name} ၏ အချက်အလက်များကို ဖြည့်ပြီးပါပြီ`);
     }
 }
 
-// စဖွင့်ဖွင့်ချင်း Calendar ဆွဲမည်
 document.addEventListener('DOMContentLoaded', renderCalendar);
