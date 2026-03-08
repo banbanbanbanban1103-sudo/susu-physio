@@ -1,6 +1,7 @@
+// ဆရာမ ပေးထားသော နောက်ဆုံး Deployment URL
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvYlsCyqFee7ouCFM67LUblhzZupEYsdVoHFFbJlFGg-NQJP6WPS_0vWsZpNlqFdPK/exec";
 
-// ၁။ Sheet ထဲကို Data အသစ်လှမ်းပို့ခြင်း
+// ၁။ Sheet ထဲကို Data အသစ်လှမ်းပို့ခြင်း (Booking အသစ်တင်ခြင်း)
 async function saveDataToSheet(patientData) {
     try {
         const response = await fetch(SCRIPT_URL, {
@@ -13,6 +14,7 @@ async function saveDataToSheet(patientData) {
             body: JSON.stringify(patientData)
         });
         
+        // no-cors ကြောင့် response အဖြေ တိုက်ရိုက်ဖတ်မရသော်လည်း logic အရ true ပြန်ပေးပါသည်
         return true; 
     } catch (error) {
         console.error('Error saving to sheet:', error);
@@ -22,12 +24,13 @@ async function saveDataToSheet(patientData) {
 
 // ၂။ လူနာကို ကုသမှုပြီးကြောင်း (Complete) သတ်မှတ်ခြင်း
 async function markAsComplete(patientName, dateTime) {
+    // အတည်ပြုချက် ရယူခြင်း
     if (!confirm(patientName + " အတွက် ကုသမှုပြီးမြောက်ကြောင်း မှတ်တမ်းတင်မလား?")) return;
 
     if (typeof showToast === "function") showToast('မှတ်တမ်းတင်နေပါသည်...', 'success');
 
     try {
-        // action: 'UPDATE_STATUS' ကိုသုံးပြီး Google Script ဆီ ပို့သည်
+        // Google Script ဆီသို့ action: 'UPDATE_STATUS' လှမ်းပို့ခြင်း
         await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -41,7 +44,7 @@ async function markAsComplete(patientName, dateTime) {
 
         if (typeof showToast === "function") showToast('မှတ်တမ်းတင်ပြီးပါပြီ');
         
-        // ဒေတာအသစ်ကို Sheet မှ ချက်ချင်းပြန်ဆွဲယူသည်
+        // Sheet ထဲမှာ data ပြောင်းသွားဖို့ အချိန်ခဏစောင့်ပြီး App data ကို refresh လုပ်ခြင်း
         setTimeout(() => {
             fetchPatientsFromSheet();
         }, 1000);
@@ -54,6 +57,7 @@ async function markAsComplete(patientName, dateTime) {
 
 // ၃။ Sheet ထဲကနေ Data ပြန်ဖတ်ခြင်း
 async function fetchPatientsFromSheet() {
+    // URL မရှိလျှင် သို့မဟုတ် default ဖြစ်နေလျှင် ရပ်တန့်မည်
     if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_GOOGLE")) return;
 
     try {
@@ -65,6 +69,7 @@ async function fetchPatientsFromSheet() {
 
             data.forEach(item => {
                 const dtStr = String(item.datetime); 
+                // Date format ညှိခြင်း (YYYY-MM-DD)
                 let d = dtStr.includes('T') ? dtStr.split('T')[0] : dtStr.substring(0, 10);
 
                 tempAppointments.push({
@@ -74,26 +79,27 @@ async function fetchPatientsFromSheet() {
                     address: item.address || "",
                     time: dtStr,
                     type: item.type || "Once",
-                    status: item.status || "Active" // Column F မှ ဒေတာ
+                    status: item.status || "Active" // Column F မှ Status (Active/Complete)
                 });
             });
             
-            // Global variable ကို update လုပ်သည်
+            // Global appointments variable ထဲသို့ ထည့်သွင်းခြင်း
             appointments = tempAppointments;
             
-            console.log(`Updated Data: ${appointments.length} records.`);
+            console.log(`Loaded ${appointments.length} records from sheet.`);
 
-            // UI များကို Update လုပ်သည်
+            // Calendar နှင့် Dashboard UI ကို ချက်ချင်း Update လုပ်ရန်
             if (typeof renderCalendar === "function") renderCalendar();
             if (typeof updateDashboardStats === "function") updateDashboardStats();
         }
     } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching data from sheet:', error);
     }
 }
 
-// ၄။ App စဖွင့်ချိန်တွင် Data ဆွဲယူရန်
+// ၄။ App စဖွင့်ချိန် (သို့မဟုတ်) Login အောင်မြင်ချိန်တွင် Data ဆွဲယူရန်
 document.addEventListener('DOMContentLoaded', () => {
+    // Login ဝင်ထားမှသာ ဒေတာဆွဲယူမည်
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
         fetchPatientsFromSheet();
     }
