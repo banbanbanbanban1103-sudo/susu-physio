@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxesy603kpIANMe8NNVHaZGpz1ZqKkUOeNar4YqEeHnDeMqYOwLsgSQveDmKlgndEgf/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHS4O-SoQPyfkdMtgUzVa5CGsZx8VBK06-12chBM2kdri00a-u0N86P5fs0ULdKHzw/exec";
 
 // ★ KEY HELPER: Sheet မှ "2026-03-08 7:28" format ကို Myanmar local date string ပြောင်းသည်
 // Google Sheets က Myanmar time (UTC+6:30) ဖြင့်သိမ်းထားတာမို့ timezone convert မလိုပါ
