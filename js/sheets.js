@@ -1,22 +1,17 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzz67fanWp4W47GFTl_dK88-4T_EsShcqCNYl_yMFR5EEuqK9OoT6LCQkw9BM6MKeo0/exec";
+// ★ URL အသစ် (Redeployed)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwPyIKKlv63Fm2ZITPpe2zWtnsgAJIEQmxzQBVeN_BXmaiL_JScp_yWdYvSKe-J5kx/exec";
 
-// ★ KEY HELPER: Sheet မှ "2026-03-08 7:28" format ကို Myanmar local date string ပြောင်းသည်
-// Google Sheets က Myanmar time (UTC+6:30) ဖြင့်သိမ်းထားတာမို့ timezone convert မလိုပါ
-// "2026-03-08 7:28" → date part = "2026-03-08", time part = "07:28"
+// ★ Sheet မှ datetime string ကို parse လုပ်သည်
+// Sheet က Myanmar local time ဖြင့် သိမ်းထားတာမို့ timezone convert မလို
 function parseDateTimeFromSheet(dtStr) {
     dtStr = String(dtStr).trim();
-
-    let datePart = "";
-    let timePart = "";
+    var datePart = "", timePart = "";
 
     if (dtStr.includes('T')) {
-        // ISO format "2026-03-08T07:28:00" — UTC မဆိုပဲ Sheet local time ဖြင့် ထားနိုင်တာမို့
-        // Myanmar offset မပေါင်း၊ တိုက်ရိုက် split ယူမည်
         datePart = dtStr.split('T')[0];
         timePart = dtStr.split('T')[1].substring(0, 5);
     } else if (dtStr.includes(' ')) {
-        // "2026-03-08 7:28" format
-        const parts = dtStr.split(' ');
+        var parts = dtStr.split(' ');
         datePart = parts[0];
         timePart = parts[1] ? parts[1].substring(0, 5) : "00:00";
     } else {
@@ -24,19 +19,19 @@ function parseDateTimeFromSheet(dtStr) {
         timePart = "00:00";
     }
 
-    // Time ကို HH:MM format ပြောင်းခြင်း (single digit hour fix: "7:28" → "07:28")
-    const timeParts = timePart.split(':');
-    const hh = String(timeParts[0] || 0).padStart(2, '0');
-    const mm = String(timeParts[1] || 0).padStart(2, '0');
-    const normalizedTime = `${hh}:${mm}`;
+    // "7:28" → "07:28"
+    var tp = timePart.split(':');
+    var hh = String(parseInt(tp[0]) || 0).padStart(2, '0');
+    var mm = String(parseInt(tp[1]) || 0).padStart(2, '0');
 
-    // Comparable ISO string (local time ဟု မှတ်ယူ၊ timezone offset မပါ)
-    const isoStr = `${datePart}T${normalizedTime}:00`;
-
-    return { datePart, timePart: normalizedTime, isoStr };
+    return {
+        datePart: datePart,
+        timePart: hh + ":" + mm,
+        isoStr: datePart + "T" + hh + ":" + mm + ":00"
+    };
 }
 
-// ၁။ Sheet ထဲကို Data အသစ်လှမ်းပို့ခြင်း
+// ၁။ Sheet ထဲကို Data အသစ်ပို့ခြင်း
 async function saveDataToSheet(patientData) {
     try {
         await fetch(SCRIPT_URL, {
@@ -53,7 +48,7 @@ async function saveDataToSheet(patientData) {
     }
 }
 
-// ၂။ လူနာကို ကုသမှုပြီးကြောင်း (Complete) သတ်မှတ်ခြင်း
+// ၂။ ပြီးပြီ နှိပ်ခြင်း — Once ဆိုရင် Sheet မှ row ဖျက်မည်
 async function markAsComplete(patientName, dateTime) {
     if (!confirm(patientName + " အတွက် ယနေ့ကုသမှုပြီးမြောက်ကြောင်း မှတ်တမ်းတင်မလား?")) return;
 
@@ -70,13 +65,11 @@ async function markAsComplete(patientName, dateTime) {
             })
         });
 
-        // Myanmar today string (local date)
-        const now = new Date();
-        const mmOffset = 6.5 * 60 * 60 * 1000;
-        const mmNow = new Date(now.getTime() + mmOffset);
-        const todayStr = mmNow.toISOString().split('T')[0];
-
-        const doneKey = `done_${patientName}_${dateTime}_${todayStr}`;
+        // Myanmar today
+        var now = new Date();
+        var mmNow = new Date(now.getTime() + 6.5 * 60 * 60 * 1000);
+        var todayStr = mmNow.toISOString().split('T')[0];
+        var doneKey = "done_" + patientName + "_" + dateTime + "_" + todayStr;
         sessionStorage.setItem(doneKey, 'true');
 
         if (typeof showToast === "function") showToast('မှတ်တမ်းတင်ပြီးပါပြီ');
@@ -89,35 +82,55 @@ async function markAsComplete(patientName, dateTime) {
     }
 }
 
-// ၃။ Sheet ထဲကနေ Data ပြန်ဖတ်ခြင်း
+// ★ Weekly လူနာကို အပြီးအပိုင် ဖျက်ခြင်း (FORCE_COMPLETE)
+async function forceCompletePatient(patientName, dateTime) {
+    if (!confirm(patientName + " ၏ ရက်ချိန်းကို အပြီးအပိုင် ဖျက်မလား?")) return;
+
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({
+                name: patientName,
+                datetime: dateTime,
+                action: 'FORCE_COMPLETE'
+            })
+        });
+
+        if (typeof showToast === "function") showToast(patientName + ' ဖျက်ပြီးပါပြီ');
+        setTimeout(() => { fetchPatientsFromSheet(); }, 1500);
+    } catch (error) {
+        console.error('Force complete error:', error);
+    }
+}
+
+// ၃။ Sheet မှ Data ဆွဲယူခြင်း
 async function fetchPatientsFromSheet() {
     if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_GOOGLE")) return;
 
     try {
-        const response = await fetch(SCRIPT_URL + "?t=" + Date.now());
-        const data = await response.json();
+        var response = await fetch(SCRIPT_URL + "?t=" + Date.now());
+        var data = await response.json();
         
         if (Array.isArray(data)) {
-            let tempAppointments = [];
+            var tempAppointments = [];
 
-            data.forEach(item => {
-                // ★ Sheet format "2026-03-08 7:28" ကို parse လုပ်ခြင်း
-                const parsed = parseDateTimeFromSheet(item.datetime);
-
+            data.forEach(function(item) {
+                var parsed = parseDateTimeFromSheet(item.datetime);
                 tempAppointments.push({
-                    date: parsed.datePart,       // "2026-03-08"
-                    name: item.name || "Unknown",
-                    phone: item.phone || "",
+                    date:    parsed.datePart,
+                    name:    item.name    || "Unknown",
+                    phone:   item.phone   || "",
                     address: item.address || "",
-                    time: parsed.isoStr,          // "2026-03-08T07:28:00" — compare လုပ်ရလွယ်အောင်
-                    type: item.type || "Once",
-                    status: item.status || "Active",
-                    count: item.count || 0
+                    time:    parsed.isoStr,
+                    type:    item.type    || "Once",
+                    status:  item.status  || "Active",
+                    count:   item.count   || 0
                 });
             });
             
             appointments = tempAppointments;
-            console.log(`Loaded ${appointments.length} records from Sheet.`);
+            console.log("Loaded " + appointments.length + " records from Sheet.");
 
             if (typeof renderCalendar === "function") renderCalendar();
             if (typeof updateDashboardStats === "function") updateDashboardStats();
@@ -127,9 +140,9 @@ async function fetchPatientsFromSheet() {
     }
 }
 
-// ၄။ App စဖွင့်ချိန် / login ပြီးချိန် Data ဆွဲယူရန်
-document.addEventListener('DOMContentLoaded', () => {
+// ၄။ Login ပြီးချိန် Data ဆွဲယူ
+document.addEventListener('DOMContentLoaded', function() {
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
-        setTimeout(() => { fetchPatientsFromSheet(); }, 300);
+        setTimeout(function() { fetchPatientsFromSheet(); }, 300);
     }
 });
