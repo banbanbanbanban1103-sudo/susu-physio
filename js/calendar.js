@@ -7,24 +7,22 @@ let appointments = []; // Google Sheets မှလာသော Data အားလ�
 function formatTime(timeStr) {
     if (!timeStr) return "အချိန်မရှိ";
     
+    // sheets.js မှ isoStr "2026-03-08T07:28:00" format ဖြင့်ရောက်လာမည်
+    // Google Sheet က Myanmar time (UTC+6:30) နဲ့ တင်ထားပြီးသားမို့ offset ထပ်မပေါင်းရ
     let timePart = "";
     if (timeStr.includes('T')) {
-        timePart = timeStr.split('T')[1].substring(0, 5);
+        timePart = timeStr.split('T')[1].substring(0, 5); // "07:28"
+    } else if (timeStr.includes(' ')) {
+        timePart = timeStr.split(' ')[1].substring(0, 5);
     } else {
         timePart = timeStr.substring(0, 5);
     }
 
     let [hours, minutes] = timePart.split(':').map(Number);
 
-    // မြန်မာစံတော်ချိန် (UTC+6:30) အတွက် ၃၉၀ မိနစ် ပေါင်းထည့်ခြင်း
-    let totalMinutes = hours * 60 + minutes + 390; 
-    
-    let finalHours = Math.floor(totalMinutes / 60) % 24;
-    let finalMinutes = totalMinutes % 60;
-
-    const ampm = finalHours >= 12 ? 'PM' : 'AM';
-    const displayHours = finalHours % 12 || 12;
-    const displayMinutes = String(finalMinutes).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = String(minutes).padStart(2, '0');
     
     return `${displayHours}:${displayMinutes} ${ampm}`;
 }
@@ -61,10 +59,10 @@ function renderCalendar() {
 
         // Weekly Logic + Status Check: Status က Complete ဖြစ်နေရင် အစက်မပြပါ
         const dayAppts = appointments.filter(a => {
-            if (a.status === 'Complete') return false; // ပြီးသွားသူများကို ဖယ်ထုတ်
+            if (a.status === 'Complete') return false;
 
-            const apptDate = new Date(a.time);
-            const apptDayOfWeek = apptDate.getDay();
+            // ★ FIX: date part သာသုံး၍ dayOfWeek ရှာမည် (UTC parse မှားမှာမို့)
+            const apptDayOfWeek = new Date(a.date + 'T00:00:00').getDay();
             
             if (a.date === dateStr) return true;
             
@@ -75,7 +73,9 @@ function renderCalendar() {
         });
 
         const hasAppt = dayAppts.length > 0;
-        const isToday = new Date().toISOString().split('T')[0] === dateStr;
+        // ★ FIX: Myanmar today date ဖြင့် isToday စစ်မည်
+        const mmNow = new Date(new Date().getTime() + 6.5 * 60 * 60 * 1000);
+        const isToday = mmNow.toISOString().split('T')[0] === dateStr;
 
         const dayEl = document.createElement('div');
         dayEl.innerText = day;
@@ -100,7 +100,8 @@ function showAppointments(dateStr, dayOfWeek) {
     const dayAppts = appointments.filter(a => {
         if (a.status === 'Complete') return false;
 
-        const apptDayOfWeek = new Date(a.time).getDay();
+        // ★ FIX: date part သာသုံး၍ dayOfWeek ရှာမည်
+        const apptDayOfWeek = new Date(a.date + 'T00:00:00').getDay();
         return a.date === dateStr || (a.type === "Weekly" && apptDayOfWeek === dayOfWeek && new Date(dateStr) >= new Date(a.date));
     });
 

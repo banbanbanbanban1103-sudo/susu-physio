@@ -80,8 +80,11 @@ function updateDashboardStats() {
         const doneKey = `done_${a.name}_${a.time}_${todayStr}`;
         if (sessionStorage.getItem(doneKey) === 'true') return false;
 
-        const apptDate = new Date(a.time);
-        const apptDayOfWeek = apptDate.getDay();
+        // ★ FIX: isoStr "2026-03-08T07:28:00" ကို local time အဖြစ် parse လုပ်ရန်
+        // new Date("2026-03-08T07:28:00") browser က UTC ဟု မှတ်ယူတတ်တာမို့
+        // date part ကိုသာ သုံးပြီး dayOfWeek ရှာမည်
+        const apptDateOnly = new Date(a.date + 'T00:00:00');
+        const apptDayOfWeek = apptDateOnly.getDay();
 
         // ၃။ ပုံမှန်ရက်ချိန်း သို့မဟုတ် Weekly ရက်ချိန်း စစ်ဆေးခြင်း
         if (a.date === todayStr) return true;
