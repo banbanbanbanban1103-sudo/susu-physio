@@ -34,7 +34,6 @@ async function markAsComplete(patientName, dateTime) {
     if (typeof showToast === "function") showToast('မှတ်တမ်းတင်နေပါသည်...', 'success');
 
     try {
-        // Google Script ဆီသို့ Update လှမ်းပို့ခြင်း
         await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -45,14 +44,12 @@ async function markAsComplete(patientName, dateTime) {
             })
         });
 
-        // Weekly လူနာများအတွက် ဒီနေ့စာရင်းကနေ ခဏဖျောက်ထားရန် Session Storage တွင်မှတ်ခြင်း
         const todayStr = new Date().toISOString().split('T')[0];
         const doneKey = `done_${patientName}_${dateTime}_${todayStr}`;
         sessionStorage.setItem(doneKey, 'true');
 
         if (typeof showToast === "function") showToast('မှတ်တမ်းတင်ပြီးပါပြီ');
         
-        // Data အသစ်ပြန်ဆွဲယူရန်
         setTimeout(() => {
             fetchPatientsFromSheet();
         }, 1000);
@@ -65,24 +62,26 @@ async function markAsComplete(patientName, dateTime) {
 
 // ၃။ Sheet ထဲကနေ Data ပြန်ဖတ်ခြင်း
 async function fetchPatientsFromSheet() {
-    if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_GOOGLE")) return;
+    // URL မရှိလျှင်သော်လည်းကောင်း၊ Default ဖြစ်နေလျှင်သော်လည်းကောင်း Calendar ကိုတော့ ဆွဲခိုင်းရမည်
+    if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_GOOGLE")) {
+        if (typeof renderCalendar === "function") renderCalendar();
+        return;
+    }
 
     try {
         const response = await fetch(SCRIPT_URL);
         const data = await response.json();
         
-        if (Array.isArray(data)) {
+        if (data && Array.isArray(data)) {
             let tempAppointments = []; 
 
             data.forEach(item => {
-                // ✅ ရက်စွဲ Format ပြင်ဆင်ခြင်း (Space ကို T ဖြင့် အစားထိုးခြင်း)
-                // ဥပမာ - "2026-03-08 7:28" ကို "2026-03-08T7:28" သို့ ပြောင်းသည်
-                let dtStr = String(item.datetime).trim();
+                // ✅ ရက်စွဲ Format ပြင်ဆင်ခြင်း
+                let dtStr = item.datetime ? String(item.datetime).trim() : "";
                 if (dtStr.includes(' ') && !dtStr.includes('T')) {
                     dtStr = dtStr.replace(' ', 'T');
                 }
 
-                // Date format ညှိခြင်း (YYYY-MM-DD)
                 let d = dtStr.includes('T') ? dtStr.split('T')[0] : dtStr.substring(0, 10);
 
                 tempAppointments.push({
@@ -93,26 +92,29 @@ async function fetchPatientsFromSheet() {
                     time: dtStr,
                     type: item.type || "Once",
                     status: item.status || "Active",
-                    count: item.count || 0 // Column G မှ ကုသမှုအကြိမ်ရေ
+                    count: item.count || 0
                 });
             });
             
-            // Global variable ကို update လုပ်သည်
             appointments = tempAppointments;
             console.log(`Loaded ${appointments.length} records.`, appointments);
-
-            // UI ကို Update လုပ်သည်
-            if (typeof renderCalendar === "function") renderCalendar();
-            if (typeof updateDashboardStats === "function") updateDashboardStats();
         }
     } catch (error) {
         console.error('Error fetching data:', error);
+    } finally {
+        // ✅ အရေးကြီးဆုံးအချက် - Data ရသည်ဖြစ်စေ၊ မရသည်ဖြစ်စေ Calendar ကို အမြဲပြန်ဆွဲခိုင်းသည်
+        // ဒါမှ Calendar ရက်စွဲတွေ ပျောက်မသွားမှာပါ
+        if (typeof renderCalendar === "function") renderCalendar();
+        if (typeof updateDashboardStats === "function") updateDashboardStats();
     }
 }
 
 // ၄။ App စဖွင့်ချိန်တွင် Data ဆွဲယူရန်
 document.addEventListener('DOMContentLoaded', () => {
+    // Login ဝင်ထားလျှင် Data ဆွဲမည်၊ မဝင်ထားလျှင်လည်း Calendar အလွတ်ကို ဆွဲပေးမည်
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
         fetchPatientsFromSheet();
+    } else {
+        if (typeof renderCalendar === "function") renderCalendar();
     }
 });
