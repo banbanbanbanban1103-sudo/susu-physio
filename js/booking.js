@@ -45,13 +45,14 @@ async function handleBooking() {
                 // Form ကို Reset ချခြင်း
                 document.getElementById('booking-form').reset();
                 
-                // ဒေတာအသစ်ကို ပြန်ဆွဲပြီး Calendar နှင့် Dashboard ကို Update လုပ်ခြင်း
-                if (typeof fetchPatientsFromSheet === "function") {
-                    await fetchPatientsFromSheet();
-                }
-
-                // ၂ စက္ကန့်အကြာတွင် Dashboard (သို့) Calendar သို့ ပြောင်းမည်
-                setTimeout(() => showSection('calendar'), 1500);
+                // FIX: Google Sheet write ဖြစ်ဖို့ ၂ စက္ကန့်စောင့်ပြီးမှ data ပြန်ဆွဲမည်
+                // no-cors POST ပြီးချိန်နှင့် Sheet actual write ဖြစ်ချိန် ကြာသောကြောင့်
+                setTimeout(async () => {
+                    if (typeof fetchPatientsFromSheet === "function") {
+                        await fetchPatientsFromSheet();
+                    }
+                    showSection('calendar');
+                }, 2000);
             } else {
                 showToast('Sheet ထဲသိမ်းရာတွင် အခက်အခဲရှိနေသည်', 'error');
             }

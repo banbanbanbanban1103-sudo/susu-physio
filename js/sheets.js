@@ -2,18 +2,18 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxesy603kpIANMe8NNVHaZGpz1ZqKkUOeNar4YqEeHnDeMqYOwLsgSQveDmKlgndEgf/exec";
 
 // ၁။ Sheet ထဲကို Data အသစ်လှမ်းပို့ခြင်း (Booking အသစ်တင်ခြင်း)
+// FIX: no-cors မှာ response မဖတ်နိုင်သောကြောင့် POST ပို့ပြီး ၂ စက္ကန့်နောက် GET ဖြင့် data ပြန်ဆွဲမည်
 async function saveDataToSheet(patientData) {
     try {
-        const response = await fetch(SCRIPT_URL, {
+        await fetch(SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', 
+            mode: 'no-cors',
             cache: 'no-cache',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(patientData)
         });
-        return true; 
+        // no-cors မှာ response body မဖတ်နိုင်သောကြောင့် POST success ဟုမှတ်ယူမည်
+        return true;
     } catch (error) {
         console.error('Error saving to sheet:', error);
         return false;
@@ -27,7 +27,6 @@ async function markAsComplete(patientName, dateTime) {
     if (typeof showToast === "function") showToast('မှတ်တမ်းတင်နေပါသည်...', 'success');
 
     try {
-        // Google Script ဆီသို့ Update လှမ်းပို့ခြင်း
         await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -38,17 +37,16 @@ async function markAsComplete(patientName, dateTime) {
             })
         });
 
-        // Weekly လူနာများအတွက် ဒီနေ့စာရင်းကနေ ခဏဖျောက်ထားရန် Session Storage တွင်မှတ်ခြင်း
         const todayStr = new Date().toISOString().split('T')[0];
         const doneKey = `done_${patientName}_${dateTime}_${todayStr}`;
         sessionStorage.setItem(doneKey, 'true');
 
         if (typeof showToast === "function") showToast('မှတ်တမ်းတင်ပြီးပါပြီ');
         
-        // Data အသစ်ပြန်ဆွဲယူရန်
+        // Sheet update ဖြစ်ဖို့ ၁.၅ စက္ကန့် စောင့်ပြီးမှ ပြန်ဆွဲမည်
         setTimeout(() => {
             fetchPatientsFromSheet();
-        }, 1000);
+        }, 1500);
 
     } catch (error) {
         console.error('Update error:', error);
@@ -57,19 +55,33 @@ async function markAsComplete(patientName, dateTime) {
 }
 
 // ၃။ Sheet ထဲကနေ Data ပြန်ဖတ်ခြင်း
+// FIX: Date ကို Myanmar time zone (UTC+6:30) ဖြင့် တွက်ချက်ခြင်း + cache bust
 async function fetchPatientsFromSheet() {
     if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_GOOGLE")) return;
 
     try {
-        const response = await fetch(SCRIPT_URL);
+        const response = await fetch(SCRIPT_URL + "?t=" + Date.now());
         const data = await response.json();
         
         if (Array.isArray(data)) {
-            let tempAppointments = []; 
+            let tempAppointments = [];
 
             data.forEach(item => {
-                const dtStr = String(item.datetime); 
-                let d = dtStr.includes('T') ? dtStr.split('T')[0] : dtStr.substring(0, 10);
+                const dtStr = String(item.datetime);
+                
+                // FIX: Myanmar time (UTC+6:30) ဖြင့် date extract လုပ်ခြင်း
+                let d;
+                if (dtStr.includes('T')) {
+                    // UTC datetime → Myanmar date ပြောင်းခြင်း
+                    const utcMs = new Date(dtStr).getTime();
+                    const mmMs = utcMs + (6.5 * 60 * 60 * 1000);
+                    const mmDate = new Date(mmMs);
+                    d = mmDate.toISOString().split('T')[0];
+                } else if (dtStr.includes(' ')) {
+                    d = dtStr.split(' ')[0];
+                } else {
+                    d = dtStr.substring(0, 10);
+                }
 
                 tempAppointments.push({
                     date: d,
@@ -79,16 +91,13 @@ async function fetchPatientsFromSheet() {
                     time: dtStr,
                     type: item.type || "Once",
                     status: item.status || "Active",
-                    count: item.count || 0 // Column G မှ ကုသမှုအကြိမ်ရေ
+                    count: item.count || 0
                 });
             });
             
-            // Global variable ကို update လုပ်သည်
             appointments = tempAppointments;
-            
             console.log(`Loaded ${appointments.length} records.`);
 
-            // UI ကို Update လုပ်သည်
             if (typeof renderCalendar === "function") renderCalendar();
             if (typeof updateDashboardStats === "function") updateDashboardStats();
         }
@@ -98,8 +107,11 @@ async function fetchPatientsFromSheet() {
 }
 
 // ၄။ App စဖွင့်ချိန်တွင် Data ဆွဲယူရန်
+// FIX: setTimeout 300ms ထည့်ပြီး DOM + JS files အားလုံး load ပြီးမှ ဆွဲမည်
 document.addEventListener('DOMContentLoaded', () => {
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
-        fetchPatientsFromSheet();
+        setTimeout(() => {
+            fetchPatientsFromSheet();
+        }, 300);
     }
 });
