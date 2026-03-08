@@ -71,15 +71,20 @@ function updateDashboardStats() {
     const todayStr = mmNow.toISOString().split('T')[0];
     const todayDayOfWeek = mmNow.getUTCDay();
 
-    // (က) ဒီနေ့ လူနာစာရင်း စစ်ထုတ်ခြင်း (Status က 'Complete' ဖြစ်နေရင် မပြပါ)
+    // (က) ဒီနေ့ လူနာစာရင်း စစ်ထုတ်ခြင်း
     const todayAppts = appointments.filter(a => {
+        // ၁။ Status က 'Complete' ဖြစ်နေရင် (Once သမားများ) လုံးဝမပြပါ
         if (a.status === 'Complete') return false;
+
+        // ၂။ ဒီနေ့အတွက် "ပြီးပြီ" နှိပ်ထားရင်လည်း (Weekly သမားများ) ခဏဖျောက်ထားမည်
+        const doneKey = `done_${a.name}_${a.time}_${todayStr}`;
+        if (sessionStorage.getItem(doneKey) === 'true') return false;
 
         const apptDate = new Date(a.time);
         const apptDayOfWeek = apptDate.getDay();
 
+        // ၃။ ပုံမှန်ရက်ချိန်း သို့မဟုတ် Weekly ရက်ချိန်း စစ်ဆေးခြင်း
         if (a.date === todayStr) return true;
-        
         if (a.type === "Weekly" && apptDayOfWeek === todayDayOfWeek) {
             return new Date(todayStr) >= new Date(a.date);
         }
@@ -92,10 +97,8 @@ function updateDashboardStats() {
     if (nextListContainer) {
         nextListContainer.innerHTML = ''; 
 
-        // ဒီနေ့အတွက် ကျန်ရှိသမျှ လူနာအားလုံးကို အချိန်အလိုက် စီပြမည်
-        const upcoming = todayAppts.sort((a, b) => {
-            return a.time.localeCompare(b.time);
-        });
+        // အချိန်အလိုက် စီမည်
+        const upcoming = todayAppts.sort((a, b) => a.time.localeCompare(b.time));
 
         if (upcoming.length > 0) {
             upcoming.forEach(appt => {
@@ -104,7 +107,7 @@ function updateDashboardStats() {
                 card.style.margin = '10px 0';
                 card.style.borderLeft = '4px solid #38bdf8';
                 card.style.padding = '15px';
-                card.style.background = '#1e293b'; // Card background လေး ပိုပေါ်အောင်
+                card.style.background = '#1e293b';
                 
                 const displayTime = (typeof formatTime === 'function') ? formatTime(appt.time) : (appt.time || '--:--');
 
@@ -114,6 +117,9 @@ function updateDashboardStats() {
                             <strong style="color: #f8fafc; font-size: 1rem;">${appt.name}</strong>
                             <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 5px;">
                                 <i class="fas fa-map-marker-alt"></i> ${appt.address || 'လိပ်စာမရှိပါ'}
+                            </p>
+                            <p style="font-size: 0.75rem; color: #10b981; margin-top: 5px; font-weight: bold;">
+                                <i class="fas fa-history"></i> ကုသမှုအကြိမ်ရေ: ${appt.count} ကြိမ်
                             </p>
                             <button onclick="markAsComplete('${appt.name}', '${appt.time}')" 
                                 style="width: auto; padding: 6px 14px; font-size: 0.75rem; margin-top: 10px; background: #10b981; border-radius: 8px; border:none; color:white; font-weight:bold; cursor:pointer;">
