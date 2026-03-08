@@ -1,4 +1,4 @@
-// ဆရာမရဲ့ Deployment URL ကို ဒီမှာသေချာထည့်ပါ
+// ဆရာမရဲ့ Deployment URL
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxesy603kpIANMe8NNVHaZGpz1ZqKkUOeNar4YqEeHnDeMqYOwLsgSQveDmKlgndEgf/exec";
 
 // ၁။ Sheet ထဲကို Data အသစ်လှမ်းပို့ခြင်း (Booking အသစ်တင်ခြင်း)
@@ -13,6 +13,13 @@ async function saveDataToSheet(patientData) {
             },
             body: JSON.stringify(patientData)
         });
+
+        // ✅ Booking တင်ပြီးနောက် UI မှာ ချက်ချင်းပေါ်လာစေရန် Data အသစ်ပြန်ဆွဲခိုင်းသည်
+        setTimeout(() => {
+            fetchPatientsFromSheet();
+            if (typeof showSection === "function") showSection('dashboard');
+        }, 1500);
+
         return true; 
     } catch (error) {
         console.error('Error saving to sheet:', error);
@@ -68,7 +75,14 @@ async function fetchPatientsFromSheet() {
             let tempAppointments = []; 
 
             data.forEach(item => {
-                const dtStr = String(item.datetime); 
+                // ✅ ရက်စွဲ Format ပြင်ဆင်ခြင်း (Space ကို T ဖြင့် အစားထိုးခြင်း)
+                // ဥပမာ - "2026-03-08 7:28" ကို "2026-03-08T7:28" သို့ ပြောင်းသည်
+                let dtStr = String(item.datetime).trim();
+                if (dtStr.includes(' ') && !dtStr.includes('T')) {
+                    dtStr = dtStr.replace(' ', 'T');
+                }
+
+                // Date format ညှိခြင်း (YYYY-MM-DD)
                 let d = dtStr.includes('T') ? dtStr.split('T')[0] : dtStr.substring(0, 10);
 
                 tempAppointments.push({
@@ -85,8 +99,7 @@ async function fetchPatientsFromSheet() {
             
             // Global variable ကို update လုပ်သည်
             appointments = tempAppointments;
-            
-            console.log(`Loaded ${appointments.length} records.`);
+            console.log(`Loaded ${appointments.length} records.`, appointments);
 
             // UI ကို Update လုပ်သည်
             if (typeof renderCalendar === "function") renderCalendar();
