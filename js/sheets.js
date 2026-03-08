@@ -3,7 +3,6 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby0OxKn-Rrwqcrx-GxYH
 // ၁။ Sheet ထဲကို Data အသစ်လှမ်းပို့ခြင်း
 async function saveDataToSheet(patientData) {
     try {
-        // patientData ထဲတွင် name, phone, address, datetime, type, status တို့ပါဝင်သည်
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors', 
@@ -14,7 +13,6 @@ async function saveDataToSheet(patientData) {
             body: JSON.stringify(patientData)
         });
         
-        // no-cors ကြောင့် response တိုက်ရိုက်စစ်မရသော်လည်း error မတက်လျှင် true ပြန်ပေးမည်
         return true; 
     } catch (error) {
         console.error('Error saving to sheet:', error);
@@ -22,12 +20,41 @@ async function saveDataToSheet(patientData) {
     }
 }
 
-// ၂။ Sheet ထဲကနေ Data ပြန်ဖတ်ခြင်း (Weekly Type ပါဝင်သည်)
-async function fetchPatientsFromSheet() {
-    if (SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE") {
-        console.warn("Google Apps Script URL ကို မထည့်ရသေးပါ။");
-        return;
+// ၂။ လူနာကို ကုသမှုပြီးကြောင်း (Complete) သတ်မှတ်ခြင်း
+async function markAsComplete(patientName, dateTime) {
+    if (!confirm(patientName + " အတွက် ကုသမှုပြီးမြောက်ကြောင်း မှတ်တမ်းတင်မလား?")) return;
+
+    if (typeof showToast === "function") showToast('မှတ်တမ်းတင်နေပါသည်...', 'success');
+
+    try {
+        // action: 'UPDATE_STATUS' ကိုသုံးပြီး Google Script ဆီ ပို့သည်
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({
+                name: patientName,
+                datetime: dateTime,
+                status: 'Complete',
+                action: 'UPDATE_STATUS'
+            })
+        });
+
+        if (typeof showToast === "function") showToast('မှတ်တမ်းတင်ပြီးပါပြီ');
+        
+        // ဒေတာအသစ်ကို Sheet မှ ချက်ချင်းပြန်ဆွဲယူသည်
+        setTimeout(() => {
+            fetchPatientsFromSheet();
+        }, 1000);
+
+    } catch (error) {
+        console.error('Update error:', error);
+        if (typeof showToast === "function") showToast('အမှားအယွင်းရှိပါသည်', 'error');
     }
+}
+
+// ၃။ Sheet ထဲကနေ Data ပြန်ဖတ်ခြင်း
+async function fetchPatientsFromSheet() {
+    if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_GOOGLE")) return;
 
     try {
         const response = await fetch(SCRIPT_URL);
@@ -38,39 +65,35 @@ async function fetchPatientsFromSheet() {
 
             data.forEach(item => {
                 const dtStr = String(item.datetime); 
-                // Date format ညှိခြင်း (YYYY-MM-DD)
                 let d = dtStr.includes('T') ? dtStr.split('T')[0] : dtStr.substring(0, 10);
 
-                // စာရင်းအသစ်ထဲသို့ Weekly/Once type ပါ တစ်ခါတည်းထည့်ခြင်း
                 tempAppointments.push({
                     date: d,
                     name: item.name || "Unknown",
                     phone: item.phone || "",
                     address: item.address || "",
                     time: dtStr,
-                    type: item.type || "Once", // Weekly သို့မဟုတ် Once (Sheet ရဲ့ Column E မှလာမည်)
-                    status: item.status || "Active"
+                    type: item.type || "Once",
+                    status: item.status || "Active" // Column F မှ ဒေတာ
                 });
             });
             
-            // Global appointments ထဲသို့ အားလုံးပေါင်းထည့်ခြင်း
+            // Global variable ကို update လုပ်သည်
             appointments = tempAppointments;
             
-            console.log(`Loaded ${appointments.length} patients including recurring schedules.`);
+            console.log(`Updated Data: ${appointments.length} records.`);
 
-            // Dashboard နဲ့ Calendar ကို ချက်ချင်း Update လုပ်ခိုင်းခြင်း
+            // UI များကို Update လုပ်သည်
             if (typeof renderCalendar === "function") renderCalendar();
             if (typeof updateDashboardStats === "function") updateDashboardStats();
-            
         }
     } catch (error) {
-        console.error('Error fetching data from sheet:', error);
+        console.error('Error fetching data:', error);
     }
 }
 
-// ၃။ App စဖွင့်ချိန် (သို့မဟုတ်) Login အောင်မြင်ချိန်တွင် Data ဆွဲယူရန်
+// ၄။ App စဖွင့်ချိန်တွင် Data ဆွဲယူရန်
 document.addEventListener('DOMContentLoaded', () => {
-    // sessionStorage စစ်ဆေးပြီး Login ဝင်ထားမှ ဒေတာဆွဲရန်
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
         fetchPatientsFromSheet();
     }
