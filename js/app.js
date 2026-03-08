@@ -72,7 +72,10 @@ function updateDashboardStats() {
     const todayDayOfWeek = mmNow.getUTCDay(); // 0 = Sun, 1 = Mon...
 
     // (က) ဒီနေ့ လူနာစာရင်း စစ်ထုတ်ခြင်း (Normal + Weekly)
+    // Status က 'Complete' ဖြစ်နေရင် Dashboard မှာ ထည့်မပြတော့ပါ
     const todayAppts = appointments.filter(a => {
+        if (a.status === 'Complete') return false;
+
         const apptDate = new Date(a.time);
         const apptDayOfWeek = apptDate.getDay();
 
@@ -114,11 +117,15 @@ function updateDashboardStats() {
 
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
+                        <div style="flex: 1;">
                             <strong style="color: #f8fafc; font-size: 1rem;">${appt.name}</strong>
                             <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 5px;">
                                 <i class="fas fa-map-marker-alt"></i> ${appt.address || 'လိပ်စာမရှိပါ'}
                             </p>
+                            <button onclick="markAsComplete('${appt.name}', '${appt.time}')" 
+                                style="width: auto; padding: 6px 14px; font-size: 0.75rem; margin-top: 10px; background: #10b981; border-radius: 8px; border:none; color:white; font-weight:bold;">
+                                <i class="fas fa-check"></i> ပြီးပြီ
+                            </button>
                         </div>
                         <div style="text-align: right;">
                             <span style="display: block; color: #38bdf8; font-weight: bold; font-size: 0.9rem;">${displayTime}</span>
