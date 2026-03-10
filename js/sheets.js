@@ -1,6 +1,10 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmYTpsRReEqvw3Gdv2-Xs9yr79UpK-YDmrh4poRMhXKK2Ts_QI9nmlO1QV38mOVD_x/exec";
 
-// Sheet မှ "2026-03-08 09:00" ကို parse — Myanmar time ဖြင့် သိမ်းထားပြီးသားမို့ offset မလို
+function getMyanmarToday() {
+    var mmNow = new Date(new Date().getTime() + 6.5 * 60 * 60 * 1000);
+    return mmNow.toISOString().split('T')[0];
+}
+
 function parseDateTimeFromSheet(dtStr) {
     dtStr = String(dtStr).trim();
     var datePart = "", timePart = "";
@@ -28,7 +32,12 @@ function parseDateTimeFromSheet(dtStr) {
     };
 }
 
-// ၁။ Booking အသစ် Sheet ထဲပို့ခြင်း
+// ★ doneKey helper — name + date ကိုသာ သုံး (time format ပြောင်းလဲနိုင်တာကြောင့်)
+function getDoneKey(patientName, dateStr, todayStr) {
+    return "done_" + patientName + "_" + dateStr + "_" + todayStr;
+}
+
+// ၁။ Booking အသစ် ပို့ခြင်း
 async function saveDataToSheet(patientData) {
     try {
         await fetch(SCRIPT_URL, {
@@ -46,8 +55,14 @@ async function saveDataToSheet(patientData) {
 }
 
 // ၂။ ပြီးပြီ နှိပ်ခြင်း
-async function markAsComplete(patientName, dateTime) {
-    if (!confirm(patientName + " အတွက် ယနေ့ကုသမှုပြီးမြောက်ကြောင်း မှတ်တမ်းတင်မလား?")) return;
+async function markAsComplete(patientName, apptDate, dateTime) {
+    showConfirm({
+        icon: "✅",
+        title: "ကုသမှု ပြီးမြောက်ကြောင်း",
+        message: patientName + " အတွက် ယနေ့ကုသမှုပြီးမြောက်ကြောင်း မှတ်တမ်းတင်မလား?",
+        okText: "မှတ်တမ်းတင်မည်",
+        okClass: "ok-green",
+        onOk: async () => {
     if (typeof showToast === "function") showToast('မှတ်တမ်းတင်နေပါသည်...', 'success');
 
     try {
@@ -56,15 +71,15 @@ async function markAsComplete(patientName, dateTime) {
             mode: 'no-cors',
             body: JSON.stringify({
                 name: patientName,
-                datetime: dateTime,  // "2026-03-08T09:00:00" — AppScript မှာ date part ကိုသာ compare မည်
+                datetime: dateTime,
                 action: 'UPDATE_STATUS'
             })
         });
 
-        var now = new Date();
-        var mmNow = new Date(now.getTime() + 6.5 * 60 * 60 * 1000);
-        var todayStr = mmNow.toISOString().split('T')[0];
-        sessionStorage.setItem("done_" + patientName + "_" + dateTime + "_" + todayStr, 'true');
+        // ★ name + apptDate ကိုသာ သုံး (time မပါ)
+        var todayStr = getMyanmarToday();
+        var doneKey = getDoneKey(patientName, apptDate, todayStr);
+        sessionStorage.setItem(doneKey, 'true');
 
         if (typeof showToast === "function") showToast('မှတ်တမ်းတင်ပြီးပါပြီ');
         setTimeout(function() { fetchPatientsFromSheet(); }, 1500);
@@ -73,28 +88,36 @@ async function markAsComplete(patientName, dateTime) {
         console.error('Update error:', error);
         if (typeof showToast === "function") showToast('အမှားအယွင်းရှိပါသည်', 'error');
     }
+        } // end onOk
+    }); // end showConfirm
 }
 
 // ၃။ Weekly လူနာ အပြီးအပိုင်ဖျက်ခြင်း
-async function forceCompletePatient(patientName, dateTime) {
-    if (!confirm(patientName + " ၏ ရက်ချိန်းကို အပြီးအပိုင် ဖျက်မလား?")) return;
-
-    try {
-        await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-                name: patientName,
-                datetime: dateTime,
-                action: 'FORCE_COMPLETE'
-            })
-        });
-
-        if (typeof showToast === "function") showToast(patientName + ' ဖျက်ပြီးပါပြီ');
-        setTimeout(function() { fetchPatientsFromSheet(); }, 1500);
-    } catch (error) {
-        console.error('Force complete error:', error);
-    }
+async function forceCompletePatient(patientName, apptDate, dateTime) {
+    showConfirm({
+        icon: "🗑️",
+        title: "ရက်ချိန်းဖျက်မည်",
+        message: patientName + " ၏ ရက်ချိန်းကို အပြီးအပိုင် ဖျက်မလား?",
+        okText: "ဖျက်မည်",
+        okClass: "ok-red",
+        onOk: async () => {
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        name: patientName,
+                        datetime: dateTime,
+                        action: 'FORCE_COMPLETE'
+                    })
+                });
+                if (typeof showToast === "function") showToast(patientName + ' ဖျက်ပြီးပါပြီ');
+                setTimeout(function() { fetchPatientsFromSheet(); }, 1500);
+            } catch (error) {
+                console.error('Force complete error:', error);
+            }
+        }
+    });
 }
 
 // ၄။ Sheet မှ Data ဆွဲယူ
@@ -103,7 +126,7 @@ async function fetchPatientsFromSheet() {
     try {
         var response = await fetch(SCRIPT_URL + "?t=" + Date.now());
         var data = await response.json();
-        
+
         if (Array.isArray(data)) {
             var tempAppointments = [];
             data.forEach(function(item) {
@@ -134,3 +157,4 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() { fetchPatientsFromSheet(); }, 300);
     }
 });
+            
