@@ -323,3 +323,69 @@ button:active {
 
 .confirm-btn.ok-green  { background: #10b981; color: white; }
 .confirm-btn.ok-red    { background: #ef4444; color: white; }
+
+/* ၁၂။ Complete Celebration Animation */
+#complete-celebration {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99998;
+    overflow: hidden;
+}
+
+.confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    top: -20px;
+    border-radius: 2px;
+    animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+    0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+    80%  { opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg) scale(0.5); opacity: 0; }
+}
+
+/* Complete card flash */
+.complete-flash {
+    animation: cardFlash 0.6s ease;
+}
+
+@keyframes cardFlash {
+    0%   { background: rgba(255,255,255,0.03); }
+    30%  { background: rgba(16,185,129,0.25); box-shadow: 0 0 20px rgba(16,185,129,0.4); }
+    100% { background: rgba(255,255,255,0.03); }
+}
+
+/* Complete checkmark overlay on card */
+.done-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(16,185,129,0.12);
+    border: 2px solid #10b981;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: doneOverlayFade 1.5s ease forwards;
+    pointer-events: none;
+}
+
+@keyframes doneOverlayFade {
+    0%   { opacity: 0; transform: scale(0.8); }
+    30%  { opacity: 1; transform: scale(1.03); }
+    70%  { opacity: 1; }
+    100% { opacity: 0; transform: scale(1); }
+}
+
+.done-overlay-icon {
+    font-size: 3rem;
+    animation: iconPop 0.4s cubic-bezier(0.18,0.89,0.32,1.28) 0.1s both;
+}
+
+@keyframes iconPop {
+    0%   { transform: scale(0); }
+    100% { transform: scale(1); }
+}
