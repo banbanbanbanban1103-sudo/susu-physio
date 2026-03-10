@@ -1,31 +1,23 @@
 let currentDate = new Date();
 let appointments = [];
 
-// Myanmar today string helper
 function getMyanmarToday() {
     var mmNow = new Date(new Date().getTime() + 6.5 * 60 * 60 * 1000);
     return mmNow.toISOString().split('T')[0];
 }
 
-// ၁။ အချိန် format ပြောင်းသည့် function
 function formatTime(timeStr) {
     if (!timeStr) return "အချိန်မရှိ";
     let timePart = "";
-    if (timeStr.includes('T')) {
-        timePart = timeStr.split('T')[1].substring(0, 5);
-    } else if (timeStr.includes(' ')) {
-        timePart = timeStr.split(' ')[1].substring(0, 5);
-    } else {
-        timePart = timeStr.substring(0, 5);
-    }
+    if (timeStr.includes('T')) timePart = timeStr.split('T')[1].substring(0, 5);
+    else if (timeStr.includes(' ')) timePart = timeStr.split(' ')[1].substring(0, 5);
+    else timePart = timeStr.substring(0, 5);
     let [hours, minutes] = timePart.split(':').map(Number);
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
-    const displayMinutes = String(minutes).padStart(2, '0');
-    return `${displayHours}:${displayMinutes} ${ampm}`;
+    return `${displayHours}:${String(minutes).padStart(2,'0')} ${ampm}`;
 }
 
-// ၂။ Calendar ဆွဲခြင်း
 function renderCalendar() {
     const monthDisplay = document.getElementById('monthDisplay');
     const calendarDays = document.getElementById('calendarDays');
@@ -39,52 +31,43 @@ function renderCalendar() {
 
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    for (let i = 0; i < firstDay; i++) {
-        calendarDays.innerHTML += `<div></div>`;
-    }
-
     const todayStr = getMyanmarToday();
+
+    for (let i = 0; i < firstDay; i++) calendarDays.innerHTML += `<div></div>`;
 
     for (let day = 1; day <= daysInMonth; day++) {
         const dateObj = new Date(year, month, day);
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         const dayOfWeek = dateObj.getDay();
 
         const dayAppts = appointments.filter(a => {
             if (a.status === 'Complete') return false;
             const apptDayOfWeek = new Date(a.date + 'T00:00:00').getDay();
             if (a.date === dateStr) return true;
-            if (a.type === "Weekly" && apptDayOfWeek === dayOfWeek) {
+            if (a.type === "Weekly" && apptDayOfWeek === dayOfWeek)
                 return new Date(dateStr) >= new Date(a.date);
-            }
             return false;
         });
 
-        const hasAppt = dayAppts.length > 0;
-        const isToday = todayStr === dateStr;
-
         const dayEl = document.createElement('div');
         dayEl.innerText = day;
-        if (isToday) dayEl.classList.add('current-day');
-        if (hasAppt) dayEl.classList.add('has-appt');
+        if (todayStr === dateStr) dayEl.classList.add('current-day');
+        if (dayAppts.length > 0) dayEl.classList.add('has-appt');
         dayEl.onclick = () => showAppointments(dateStr, dayOfWeek);
         calendarDays.appendChild(dayEl);
     }
 }
 
-// ၃။ ရွေးချယ်သော ရက်ရှိ လူနာစာရင်း ပြခြင်း
 function showAppointments(dateStr, dayOfWeek) {
     const dayApptsSection = document.getElementById('dayAppointments');
     const apptListContainer = document.getElementById('appointmentList');
     const selectedDateText = document.getElementById('selectedDateText');
-
     const todayStr = getMyanmarToday();
 
     const dayAppts = appointments.filter(a => {
         if (a.status === 'Complete') return false;
         const apptDayOfWeek = new Date(a.date + 'T00:00:00').getDay();
-        return a.date === dateStr || 
+        return a.date === dateStr ||
                (a.type === "Weekly" && apptDayOfWeek === dayOfWeek && new Date(dateStr) >= new Date(a.date));
     });
 
@@ -93,37 +76,34 @@ function showAppointments(dateStr, dayOfWeek) {
 
     if (dayAppts.length > 0) {
         dayAppts.sort((a, b) => a.time.localeCompare(b.time));
-
         dayAppts.forEach(appt => {
             const item = document.createElement('div');
             item.className = 'appt-item';
-            item.style.cssText = 'padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; background: rgba(255,255,255,0.03); border-radius: 12px;';
+            item.style.cssText = 'padding:15px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:10px;background:rgba(255,255,255,0.03);border-radius:12px;';
 
             const typeTag = appt.type === 'Weekly' ?
-                `<span style="font-size: 0.65rem; background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">🔄 Weekly</span>` : '';
+                `<span style="font-size:0.65rem;background:#0ea5e9;color:white;padding:2px 6px;border-radius:4px;margin-left:8px;">🔄 Weekly</span>` : '';
 
-            // ★ ဒီနေ့ "ပြီးပြီ" နှိပ်ထားပြီးသားလား စစ်ဆေး
-            const doneKey = `done_${appt.name}_${appt.time}_${todayStr}`;
+            // ★ doneKey: name + apptDate (time မပါ) — data refresh လုပ်ရင်လဲ key ကွာမသွားနိုင်
+            const doneKey = `done_${appt.name}_${appt.date}_${todayStr}`;
             const isDoneToday = sessionStorage.getItem(doneKey) === 'true';
 
-            // ★ Weekly ဆိုရင် "အပြီးဖျက်" button ထည့်
             const forceCompleteBtn = appt.type === 'Weekly' ? `
-                <button onclick="forceCompletePatient('${appt.name}', '${appt.time}')" 
-                    style="padding: 6px 14px; background: #ef4444; border: none; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem; margin-left: 8px;">
+                <button onclick="forceCompletePatient('${appt.name}', '${appt.date}', '${appt.time}')"
+                    style="padding:6px 14px;background:#ef4444;border:none;color:white;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.75rem;margin-left:8px;">
                     <i class="fas fa-trash"></i> အပြီးဖျက်
                 </button>` : '';
 
-            // ★ ပြီးပြီ နှိပ်ထားရင် badge ပြ၊ မနှိပ်ရင် button ပြ
             const actionArea = isDoneToday ? `
-                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16,185,129,0.15); border: 1px solid #10b981; border-radius: 8px; padding: 6px 12px;">
-                    <i class="fas fa-check-circle" style="color: #10b981;"></i>
-                    <span style="color: #10b981; font-size: 0.8rem; font-weight: bold;">ယနေ့ ကုသပြီး</span>
+                <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.15);border:1px solid #10b981;border-radius:8px;padding:6px 12px;">
+                    <i class="fas fa-check-circle" style="color:#10b981;"></i>
+                    <span style="color:#10b981;font-size:0.8rem;font-weight:bold;">ယနေ့ ကုသပြီး</span>
                 </div>
                 ${forceCompleteBtn}
             ` : `
-                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <button onclick="markAsComplete('${appt.name}', '${appt.time}')" 
-                        style="padding: 6px 14px; background: #10b981; border: none; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem;">
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <button onclick="markAsComplete('${appt.name}', '${appt.date}', '${appt.time}')"
+                        style="padding:6px 14px;background:#10b981;border:none;color:white;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.75rem;">
                         <i class="fas fa-check"></i> ပြီးပြီ
                     </button>
                     ${forceCompleteBtn}
@@ -131,27 +111,27 @@ function showAppointments(dateStr, dayOfWeek) {
             `;
 
             item.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="flex: 1;">
-                        <strong style="color: var(--accent-blue); font-size: 1.1rem;">${appt.name} ${typeTag}</strong>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 5px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div style="flex:1;">
+                        <strong style="color:var(--accent-blue);font-size:1.1rem;">${appt.name} ${typeTag}</strong>
+                        <p style="font-size:0.85rem;color:var(--text-secondary);margin:5px 0;">
                             <i class="fas fa-phone-alt"></i> ${appt.phone}
                         </p>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">
+                        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:6px;">
                             <i class="fas fa-map-marker-alt"></i> ${appt.address || 'လိပ်စာမရှိပါ'}
                         </p>
-                        <p style="font-size: 0.75rem; color: #10b981; margin-bottom: 10px;">
+                        <p style="font-size:0.75rem;color:#10b981;margin-bottom:10px;">
                             <i class="fas fa-history"></i> ကုသမှု: ${appt.count} ကြိမ်
                         </p>
                         ${actionArea}
                     </div>
-                    <div style="text-align: right;">
-                        <span style="display: block; color: white; font-weight: bold; background: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem;">
+                    <div style="text-align:right;">
+                        <span style="display:block;color:white;font-weight:bold;background:var(--accent-blue);padding:4px 10px;border-radius:6px;font-size:0.85rem;">
                             ${formatTime(appt.time)}
                         </span>
-                        <div style="margin-top: 12px;">
-                            <button onclick="rebookPatient('${appt.name}', '${appt.phone}', '${appt.address}')" 
-                                style="padding: 6px 12px; font-size: 0.75rem; width: auto; background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); border-radius: 6px; cursor:pointer;">
+                        <div style="margin-top:12px;">
+                            <button onclick="rebookPatient('${appt.name}','${appt.phone}','${appt.address}')"
+                                style="padding:6px 12px;font-size:0.75rem;width:auto;background:transparent;border:1px solid var(--accent-blue);color:var(--accent-blue);border-radius:6px;cursor:pointer;">
                                 Re-book
                             </button>
                         </div>
@@ -161,7 +141,7 @@ function showAppointments(dateStr, dayOfWeek) {
             apptListContainer.appendChild(item);
         });
     } else {
-        if (apptListContainer) apptListContainer.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">ရက်ချိန်းမရှိပါ။</p>';
+        if (apptListContainer) apptListContainer.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">ရက်ချိန်းမရှိပါ။</p>';
     }
 
     if (dayApptsSection) {
@@ -170,13 +150,11 @@ function showAppointments(dateStr, dayOfWeek) {
     }
 }
 
-// ၄။ လ ပြောင်းခြင်း
 function changeMonth(step) {
     currentDate.setMonth(currentDate.getMonth() + step);
     renderCalendar();
 }
 
-// ၅။ Re-book
 function rebookPatient(name, phone, address) {
     if (typeof showSection === "function") {
         showSection('booking');

@@ -77,7 +77,7 @@ function updateDashboardStats() {
         if (a.status === 'Complete') return false;
 
         // ၂။ ဒီနေ့အတွက် "ပြီးပြီ" နှိပ်ထားရင်လည်း (Weekly သမားများ) ခဏဖျောက်ထားမည်
-        const doneKey = `done_${a.name}_${a.time}_${todayStr}`;
+        const doneKey = `done_${a.name}_${a.date}_${todayStr}`;
         if (sessionStorage.getItem(doneKey) === 'true') return false;
 
         // ★ FIX: isoStr "2026-03-08T07:28:00" ကို local time အဖြစ် parse လုပ်ရန်
@@ -124,7 +124,7 @@ function updateDashboardStats() {
                             <p style="font-size: 0.75rem; color: #10b981; margin-top: 5px; font-weight: bold;">
                                 <i class="fas fa-history"></i> ကုသမှုအကြိမ်ရေ: ${appt.count} ကြိမ်
                             </p>
-                            <button onclick="markAsComplete('${appt.name}', '${appt.time}')" 
+                            <button onclick="markAsComplete('${appt.name}', '${appt.date}', '${appt.time}')" 
                                 style="width: auto; padding: 6px 14px; font-size: 0.75rem; margin-top: 10px; background: #10b981; border-radius: 8px; border:none; color:white; font-weight:bold; cursor:pointer;">
                                 <i class="fas fa-check"></i> ပြီးပြီ
                             </button>
@@ -142,6 +142,44 @@ function updateDashboardStats() {
         }
     }
 }
+
+// ★ Custom Confirm Modal (browser confirm() အစားထိုး)
+function showConfirm({ icon = "❓", title = "", message = "", okText = "ဟုတ်ကဲ့", okClass = "ok-green", onOk }) {
+    let overlay = document.getElementById('confirm-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'confirm-overlay';
+        overlay.className = 'hidden';
+        overlay.innerHTML = `
+            <div class="confirm-box">
+                <div class="confirm-icon" id="confirm-icon"></div>
+                <div class="confirm-title" id="confirm-title"></div>
+                <div class="confirm-message" id="confirm-message"></div>
+                <div class="confirm-buttons">
+                    <button class="confirm-btn cancel" id="confirm-cancel">မလုပ်တော့ဘူး</button>
+                    <button class="confirm-btn" id="confirm-ok">ဟုတ်ကဲ့</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+    }
+
+    document.getElementById('confirm-icon').innerText    = icon;
+    document.getElementById('confirm-title').innerText   = title;
+    document.getElementById('confirm-message').innerText = message;
+
+    const okBtn = document.getElementById('confirm-ok');
+    okBtn.innerText  = okText;
+    okBtn.className  = 'confirm-btn ' + okClass;
+
+    overlay.classList.remove('hidden');
+
+    const close = () => overlay.classList.add('hidden');
+
+    okBtn.onclick = () => { close(); if (onOk) onOk(); };
+    document.getElementById('confirm-cancel').onclick = close;
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+}
+
 
 // ၅။ Custom Toast Notification
 function showToast(message, type = 'success') {
