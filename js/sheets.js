@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzz67fanWp4W47GFTl_dK88-4T_EsShcqCNYl_yMFR5EEuqK9OoT6LCQkw9BM6MKeo0/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmYTpsRReEqvw3Gdv2-Xs9yr79UpK-YDmrh4poRMhXKK2Ts_QI9nmlO1QV38mOVD_x/exec";
 
 function getMyanmarToday() {
     var mmNow = new Date(new Date().getTime() + 6.5 * 60 * 60 * 1000);
