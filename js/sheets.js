@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmYTpsRReEqvw3Gdv2-Xs9yr79UpK-YDmrh4poRMhXKK2Ts_QI9nmlO1QV38mOVD_x/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzz67fanWp4W47GFTl_dK88-4T_EsShcqCNYl_yMFR5EEuqK9OoT6LCQkw9BM6MKeo0/exec";
 
 function getMyanmarToday() {
     var mmNow = new Date(new Date().getTime() + 6.5 * 60 * 60 * 1000);
@@ -76,10 +76,10 @@ async function markAsComplete(patientName, apptDate, dateTime) {
             })
         });
 
-        // ★ name + apptDate ကိုသာ သုံး (time မပါ)
+        // ★ localStorage ဖြင့် သိမ်း — PWA app ပိတ်ပြီးပြန်ဖွင့်ရင်လဲ တူညီတဲ့ date ကိုသာ done ပြမည်
         var todayStr = getMyanmarToday();
         var doneKey = getDoneKey(patientName, apptDate, todayStr);
-        sessionStorage.setItem(doneKey, 'true');
+        localStorage.setItem(doneKey, todayStr); // value = date ဖြင့် သိမ်း
 
         if (typeof showToast === "function") showToast('မှတ်တမ်းတင်ပြီးပါပြီ');
         setTimeout(function() { fetchPatientsFromSheet(); }, 1500);
@@ -157,4 +157,3 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() { fetchPatientsFromSheet(); }, 300);
     }
 });
-        
