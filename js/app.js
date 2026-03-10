@@ -77,7 +77,8 @@ function updateDashboardStats() {
         if (a.status === 'Complete') return false;
 
         // ၂။ ဒီနေ့အတွက် "ပြီးပြီ" နှိပ်ထားရင်လည်း (Weekly သမားများ) ခဏဖျောက်ထားမည်
-        const doneKey = `done_${a.name}_${a.date}_${todayStr}`;
+        // ★ doneKey မှာ todayStr ကိုသာ သုံး — Weekly သမားတွေ booking date မတူနိုင်တာကြောင့်
+        const doneKey = `done_${a.name}_${todayStr}`;
         if (localStorage.getItem(doneKey) === todayStr) return false;
 
         // ★ FIX: isoStr "2026-03-08T07:28:00" ကို local time အဖြစ် parse လုပ်ရန်
