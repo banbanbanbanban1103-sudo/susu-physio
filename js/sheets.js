@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDlA3zOcQY9kPyoJB3MDgLlXWp47aAOONad7K3_lYxwdhYkaECCJcz7kjeXC0EkRXk/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-deRFzrnO9d-f9k_lYidf2zdlIyOzyv1Olh30MnZadqdEIu8r-qXSHQg0ffOWVQgs/exec";
 
 function getMyanmarToday() {
     var mmNow = new Date(new Date().getTime() + 6.5 * 60 * 60 * 1000);
@@ -8,7 +8,6 @@ function getMyanmarToday() {
 function parseDateTimeFromSheet(dtStr) {
     dtStr = String(dtStr).trim();
     var datePart = "", timePart = "";
-
     if (dtStr.includes('T')) {
         datePart = dtStr.split('T')[0];
         timePart = dtStr.split('T')[1].substring(0, 5);
@@ -20,11 +19,9 @@ function parseDateTimeFromSheet(dtStr) {
         datePart = dtStr.substring(0, 10);
         timePart = "00:00";
     }
-
     var tp = timePart.split(':');
     var hh = String(parseInt(tp[0]) || 0).padStart(2, '0');
     var mm = String(parseInt(tp[1]) || 0).padStart(2, '0');
-
     return {
         datePart: datePart,
         timePart: hh + ":" + mm,
@@ -32,29 +29,23 @@ function parseDateTimeFromSheet(dtStr) {
     };
 }
 
-// ★ doneKey helper — name + todayStr သာ သုံး (Weekly booking date မတူနိုင်တာကြောင့်)
-function getDoneKey(patientName, todayStr) {
-    return "done_" + patientName + "_" + todayStr;
-}
-
 // ၁။ Booking အသစ် ပို့ခြင်း
 async function saveDataToSheet(patientData) {
     try {
         await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            cache: 'no-cache',
+            method: 'POST', mode: 'no-cors', cache: 'no-cache',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(patientData)
         });
         return true;
     } catch (error) {
-        console.error('Error saving to sheet:', error);
+        console.error('Error saving:', error);
         return false;
     }
 }
 
-// ၂။ ပြီးပြီ နှိပ်ခြင်း
+// ၂။ ပြီးပြီ နှိပ်ခြင်း — Sheet မှာ Complete + နောက်ပတ် row အသစ် (AppScript က handle)
+// localStorage/sessionStorage doneKey မလိုတော့ — Sheet status ကသာ အားကိုးမည်
 async function markAsComplete(patientName, apptDate, dateTime) {
     showConfirm({
         icon: "✅",
@@ -63,33 +54,26 @@ async function markAsComplete(patientName, apptDate, dateTime) {
         okText: "မှတ်တမ်းတင်မည်",
         okClass: "ok-green",
         onOk: async () => {
-    if (typeof showToast === "function") showToast('မှတ်တမ်းတင်နေပါသည်...', 'success');
-
-    try {
-        await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-                name: patientName,
-                datetime: dateTime,
-                action: 'UPDATE_STATUS'
-            })
-        });
-
-        // ★ localStorage ဖြင့် သိမ်း — PWA app ပိတ်ပြီးပြန်ဖွင့်ရင်လဲ တူညီတဲ့ date ကိုသာ done ပြမည်
-        var todayStr = getMyanmarToday();
-        var doneKey = getDoneKey(patientName, todayStr);
-        localStorage.setItem(doneKey, todayStr);
-
-        if (typeof showToast === "function") showToast('မှတ်တမ်းတင်ပြီးပါပြီ');
-        setTimeout(function() { fetchPatientsFromSheet(); }, 1500);
-
-    } catch (error) {
-        console.error('Update error:', error);
-        if (typeof showToast === "function") showToast('အမှားအယွင်းရှိပါသည်', 'error');
-    }
-        } // end onOk
-    }); // end showConfirm
+            if (typeof showToast === "function") showToast('မှတ်တမ်းတင်နေပါသည်...', 'success');
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    body: JSON.stringify({
+                        name: patientName,
+                        datetime: dateTime,
+                        action: 'UPDATE_STATUS'
+                    })
+                });
+                // ★ Complete animation ပြခြင်း
+                if (typeof showCompleteAnimation === "function") showCompleteAnimation();
+                if (typeof showToast === "function") showToast('✅ ' + patientName + ' ကုသမှုပြီးပါပြီ!');
+                setTimeout(function() { fetchPatientsFromSheet(); }, 1800);
+            } catch (error) {
+                console.error('Update error:', error);
+                if (typeof showToast === "function") showToast('အမှားအယွင်းရှိပါသည်', 'error');
+            }
+        }
+    });
 }
 
 // ၃။ Weekly လူနာ အပြီးအပိုင်ဖျက်ခြင်း
@@ -103,8 +87,7 @@ async function forceCompletePatient(patientName, apptDate, dateTime) {
         onOk: async () => {
             try {
                 await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
+                    method: 'POST', mode: 'no-cors',
                     body: JSON.stringify({
                         name: patientName,
                         datetime: dateTime,
@@ -126,7 +109,6 @@ async function fetchPatientsFromSheet() {
     try {
         var response = await fetch(SCRIPT_URL + "?t=" + Date.now());
         var data = await response.json();
-
         if (Array.isArray(data)) {
             var tempAppointments = [];
             data.forEach(function(item) {
