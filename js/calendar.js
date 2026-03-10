@@ -84,9 +84,10 @@ function showAppointments(dateStr, dayOfWeek) {
             const typeTag = appt.type === 'Weekly' ?
                 `<span style="font-size:0.65rem;background:#0ea5e9;color:white;padding:2px 6px;border-radius:4px;margin-left:8px;">🔄 Weekly</span>` : '';
 
-            // ★ doneKey: name + apptDate (time မပါ) — data refresh လုပ်ရင်လဲ key ကွာမသွားနိုင်
+            // ★ localStorage + date check — PWA app ပိတ်ပြန်ဖွင့်ရင်လဲ ဒီနေ့ date မတူရင် မပြ
             const doneKey = `done_${appt.name}_${appt.date}_${todayStr}`;
-            const isDoneToday = sessionStorage.getItem(doneKey) === 'true';
+            const doneVal = localStorage.getItem(doneKey);
+            const isDoneToday = doneVal === todayStr;
 
             const forceCompleteBtn = appt.type === 'Weekly' ? `
                 <button onclick="forceCompletePatient('${appt.name}', '${appt.date}', '${appt.time}')"

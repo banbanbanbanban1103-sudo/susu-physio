@@ -78,7 +78,7 @@ function updateDashboardStats() {
 
         // ၂။ ဒီနေ့အတွက် "ပြီးပြီ" နှိပ်ထားရင်လည်း (Weekly သမားများ) ခဏဖျောက်ထားမည်
         const doneKey = `done_${a.name}_${a.date}_${todayStr}`;
-        if (sessionStorage.getItem(doneKey) === 'true') return false;
+        if (localStorage.getItem(doneKey) === todayStr) return false;
 
         // ★ FIX: isoStr "2026-03-08T07:28:00" ကို local time အဖြစ် parse လုပ်ရန်
         // new Date("2026-03-08T07:28:00") browser က UTC ဟု မှတ်ယူတတ်တာမို့
