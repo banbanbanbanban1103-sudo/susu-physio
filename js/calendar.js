@@ -40,6 +40,7 @@ function renderCalendar() {
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         const dayOfWeek = dateObj.getDay();
 
+        // Active row တွေသာ filter — Complete row တွေ Sheet မှာ ရှိနေသေးတာကြောင့် status စစ်မည်
         const dayAppts = appointments.filter(a => {
             if (a.status === 'Complete') return false;
             const apptDayOfWeek = new Date(a.date + 'T00:00:00').getDay();
@@ -59,9 +60,9 @@ function renderCalendar() {
 }
 
 function showAppointments(dateStr, dayOfWeek) {
-    const dayApptsSection = document.getElementById('dayAppointments');
+    const dayApptsSection   = document.getElementById('dayAppointments');
     const apptListContainer = document.getElementById('appointmentList');
-    const selectedDateText = document.getElementById('selectedDateText');
+    const selectedDateText  = document.getElementById('selectedDateText');
     const todayStr = getMyanmarToday();
 
     const dayAppts = appointments.filter(a => {
@@ -79,37 +80,16 @@ function showAppointments(dateStr, dayOfWeek) {
         dayAppts.forEach(appt => {
             const item = document.createElement('div');
             item.className = 'appt-item';
-            item.style.cssText = 'padding:15px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:10px;background:rgba(255,255,255,0.03);border-radius:12px;';
+            item.style.cssText = 'padding:15px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:10px;background:rgba(255,255,255,0.03);border-radius:12px;transition:all 0.3s;';
 
             const typeTag = appt.type === 'Weekly' ?
                 `<span style="font-size:0.65rem;background:#0ea5e9;color:white;padding:2px 6px;border-radius:4px;margin-left:8px;">🔄 Weekly</span>` : '';
 
-            // ★ doneKey = name + todayStr — ဒီနေ့ ကုသပြီးလားဆိုတာသာ သိမ်း
-            const doneKey = `done_${appt.name}_${todayStr}`;
-            const doneVal = localStorage.getItem(doneKey);
-            const isDoneToday = doneVal === todayStr;
-
             const forceCompleteBtn = appt.type === 'Weekly' ? `
-                <button onclick="forceCompletePatient('${appt.name}', '${appt.date}', '${appt.time}')"
+                <button onclick="forceCompletePatient('${appt.name}','${appt.date}','${appt.time}')"
                     style="padding:6px 14px;background:#ef4444;border:none;color:white;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.75rem;margin-left:8px;">
                     <i class="fas fa-trash"></i> အပြီးဖျက်
                 </button>` : '';
-
-            const actionArea = isDoneToday ? `
-                <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.15);border:1px solid #10b981;border-radius:8px;padding:6px 12px;">
-                    <i class="fas fa-check-circle" style="color:#10b981;"></i>
-                    <span style="color:#10b981;font-size:0.8rem;font-weight:bold;">ယနေ့ ကုသပြီး</span>
-                </div>
-                ${forceCompleteBtn}
-            ` : `
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                    <button onclick="markAsComplete('${appt.name}', '${appt.date}', '${appt.time}')"
-                        style="padding:6px 14px;background:#10b981;border:none;color:white;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.75rem;">
-                        <i class="fas fa-check"></i> ပြီးပြီ
-                    </button>
-                    ${forceCompleteBtn}
-                </div>
-            `;
 
             item.innerHTML = `
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;">
@@ -124,7 +104,13 @@ function showAppointments(dateStr, dayOfWeek) {
                         <p style="font-size:0.75rem;color:#10b981;margin-bottom:10px;">
                             <i class="fas fa-history"></i> ကုသမှု: ${appt.count} ကြိမ်
                         </p>
-                        ${actionArea}
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                            <button onclick="markAsComplete('${appt.name}','${appt.date}','${appt.time}')"
+                                style="padding:6px 14px;background:#10b981;border:none;color:white;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.75rem;">
+                                <i class="fas fa-check"></i> ပြီးပြီ
+                            </button>
+                            ${forceCompleteBtn}
+                        </div>
                     </div>
                     <div style="text-align:right;">
                         <span style="display:block;color:white;font-weight:bold;background:var(--accent-blue);padding:4px 10px;border-radius:6px;font-size:0.85rem;">
@@ -159,12 +145,12 @@ function changeMonth(step) {
 function rebookPatient(name, phone, address) {
     if (typeof showSection === "function") {
         showSection('booking');
-        const nameEl = document.getElementById('p-name');
+        const nameEl  = document.getElementById('p-name');
         const phoneEl = document.getElementById('p-phone');
-        const addrEl = document.getElementById('p-address');
-        if (nameEl) nameEl.value = name;
+        const addrEl  = document.getElementById('p-address');
+        if (nameEl)  nameEl.value  = name;
         if (phoneEl) phoneEl.value = phone;
-        if (addrEl) addrEl.value = address;
+        if (addrEl)  addrEl.value  = address;
         if (typeof showToast === "function") showToast(`${name} ၏ အချက်အလက်များကို ဖြည့်ပြီးပါပြီ`);
     }
 }

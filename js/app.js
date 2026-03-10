@@ -144,6 +144,64 @@ function updateDashboardStats() {
     }
 }
 
+// ★ Complete Celebration — confetti + card flash
+function showCompleteAnimation() {
+    // ၁။ confetti container
+    let cel = document.getElementById('complete-celebration');
+    if (!cel) {
+        cel = document.createElement('div');
+        cel.id = 'complete-celebration';
+        document.body.appendChild(cel);
+    }
+    cel.innerHTML = '';
+
+    const colors = ['#10b981','#38bdf8','#f59e0b','#ec4899','#a78bfa','#34d399','#fbbf24'];
+    const shapes = ['border-radius:2px','border-radius:50%','border-radius:0'];
+
+    for (let i = 0; i < 60; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        const color    = colors[Math.floor(Math.random() * colors.length)];
+        const shape    = shapes[Math.floor(Math.random() * shapes.length)];
+        const size     = Math.random() * 8 + 6;
+        const left     = Math.random() * 100;
+        const duration = Math.random() * 1.5 + 1.2;
+        const delay    = Math.random() * 0.8;
+        piece.style.cssText = `
+            left:${left}vw;
+            width:${size}px; height:${size}px;
+            background:${color};
+            ${shape};
+            animation-duration:${duration}s;
+            animation-delay:${delay}s;
+        `;
+        cel.appendChild(piece);
+    }
+
+    // ၂။ card flash — visible appt items
+    document.querySelectorAll('.appt-item').forEach(el => {
+        el.classList.remove('complete-flash');
+        void el.offsetWidth;
+        el.classList.add('complete-flash');
+
+        // done overlay ✅
+        const overlay = document.createElement('div');
+        overlay.className = 'done-overlay';
+        overlay.style.position = 'relative';
+        const icon = document.createElement('div');
+        icon.className = 'done-overlay-icon';
+        icon.innerText = '✅';
+        overlay.appendChild(icon);
+        el.style.position = 'relative';
+        el.appendChild(overlay);
+        setTimeout(() => overlay.remove(), 1500);
+    });
+
+    // ၃။ cleanup confetti
+    setTimeout(() => { cel.innerHTML = ''; }, 3000);
+}
+
+
 // ★ Custom Confirm Modal (browser confirm() အစားထိုး)
 function showConfirm({ icon = "❓", title = "", message = "", okText = "ဟုတ်ကဲ့", okClass = "ok-green", onOk }) {
     let overlay = document.getElementById('confirm-overlay');
